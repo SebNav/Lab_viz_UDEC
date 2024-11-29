@@ -1,5 +1,7 @@
-# Lab_viz_UDEC
-Repositorio de los comandos utilizados en el laboratorio de visualización. 
+# Laboratorio de visualizacion de la Universidad de Concepción
+
+Repositorio de los comandos de procesamientos de imagenes de difusión y datos de tractografías comunmente utilizados en el laboratorio
+
 
 Para el correcto funcionamiento de estos codigos se necesitas las siguientes librerias:
 
