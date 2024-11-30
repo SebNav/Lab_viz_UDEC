@@ -7,8 +7,8 @@ Repositorio de los comandos de procesamientos de imagenes de difusión y datos d
 
 Para el correcto funcionamiento de estos codigos se necesitas las siguientes librerias:
 
-dipy
-numpy
-nibabel
-fury
-pandas
+* dipy
+* numpy
+* nibabel
+* fury
+* pandas
