@@ -12,7 +12,7 @@ En este repositorio se tiene las archivos necesarios para la segmentacion de fas
 ## Modo de Uso
 
 > [!IMPORTANT]  
-> **Para que la segmentación funcione correctamente el tractograma a segmentar debe estar en el espacio de referencia MNI152 y en el formato .bundles. **
+> **Para que la segmentación funcione correctamente el tractograma a segmentar debe estar en el espacio de referencia MNI152 y en el formato .bundles.**
 
 
 
