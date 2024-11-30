@@ -2,46 +2,41 @@
 
 ## Descripción
 
-Método de segmentación de fibras basado en la distancia euclidiana máxima de las fibras de un tractograma con respecto a las fibras del atlas de fascículos a utilizar para la segmentación. Este método fue propuesto originalmente por Labra [N. Labra et al., 2017] y posteriormente paralelizado por Vázquez [Vázquez et al., 2019].
+Este repositorio contiene un método para segmentar fibras basado en la distancia euclidiana máxima entre las fibras de un tractograma y las fibras de un atlas de fascículos. El método fue propuesto originalmente por Labra [N. Labra et al., 2017] y posteriormente paralelizado por Vázquez [Vázquez et al., 2019].
 
-En este repositorio se tienen los archivos necesarios para realizar la segmentacion de fascículos de fibras largas (DWM atlas [Guevara et al., 2012] y fasciculos de fibras cortas (SWM atlas [Godoy et al., 2021]). 
+Se incluyen los archivos necesarios para la segmentación de fascículos de fibras largas (DWM atlas [Guevara et al., 2012]) y fascículos de fibras cortas (SWM atlas [Godoy et al., 2021]).
 
-
-| Carpeta/Archivo         | Descripción                                                                                 |
-|-------------------------|---------------------------------------------------------------------------------------------|
-| AtlasRo/                | Carpeta con los fascículos de fibras cortas SWM (.bundles)                                   |
-| AtlasRo_tck/            | Carpeta con los fascículos de fibras cortas SWM (.tck)                                       |
-| atlas_faisceaux/        | Carpeta con los fascículos de fibras largas DWM (.bundles)                                   |
-| atlas_faisceaux_tck/    | Carpeta con los fascículos de fibras largas DWM (.tck)                                       |
-| AtlasRo.txt             | Archivo de texto que especifica la distancia Euclideana máxima utilizada para la segmentación de todos los fascículos de fibras cortas |
-| AtlasRo_estables.txt    | Archivo de texto que especifica la distancia Euclideana máxima utilizada para la segmentación de los 208 fascículos de fibras cortas más estables |
-| atlas_faisceaux.txt     | Archivo de texto que especifica la distancia Euclideana máxima utilizada para la segmentación de los fascículos de fibras largas |
-| main_index              | Ejecutable de código escrito en C++ que genera la segmentación de datos                      |
-
-
+Carpeta/Archivo         : Descripción
+------------------------:-------------------------------------------------------------
+AtlasRo/                : Carpeta con los fascículos de fibras cortas SWM (.bundles).
+AtlasRo_tck/            : Carpeta con los fascículos de fibras cortas SWM (.tck).
+atlas_faisceaux/        : Carpeta con los fascículos de fibras largas DWM (.bundles).
+atlas_faisceaux_tck/    : Carpeta con los fascículos de fibras largas DWM (.tck).
+test_data/              : Carpeta con datos de prueba para testear el método de segmentación.
+AtlasRo.txt             : Archivo de texto que especifica la distancia euclidiana máxima utilizada para la segmentación de todos los fascículos de fibras cortas.
+AtlasRo_estables.txt    : Archivo de texto que especifica la distancia euclidiana máxima utilizada para la segmentación de los 208 fascículos de fibras cortas más estables.
+atlas_faisceaux.txt     : Archivo de texto que especifica la distancia euclidiana máxima utilizada para la segmentación de los fascículos de fibras largas.
+main_index              : Ejecutable en C++ que realiza la segmentación de datos.
 
 ## Modo de Uso
 
-> [!IMPORTANT]  
-> **Para que la segmentación funcione correctamente el tractograma a segmentar debe estar en el espacio de referencia MNI152 y las fibras remuestradas a 21 puntos equidistantes (en el formato .bundles).**
+Para que la segmentación funcione correctamente, el tractograma a segmentar debe estar en el espacio de referencia MNI152 y las fibras remuestradas a 21 puntos equidistantes (en formato .bundles).
 
-1.- Abre una terminal en la carpeta donde se tiene el ejecutable
+1. Abre una terminal en la carpeta donde se encuentra el ejecutable.
 
-2.- Correr el ejecutable especificando la carpeta de fascículos y archivo de distancias dependiendo de los fascículos a segmentar:
+2. Ejecuta el programa especificando la carpeta de fascículos y el archivo de distancias correspondiente según el tipo de fascículos que deseas segmentar:
 
-2.1. Codigo para Segmentar fascículos de fibras cortas (estables) utilizando la carpeta de ejemplo:
+2.1. Segmentación de fascículos de fibras cortas (estables) con datos de prueba:
+./main_index 21 test_data/subject_x_21p_MNI.bundles subject AtlasRo/ AtlasRo_estables.txt test_data/SWM/results_folder test_data/SWM/indices_folder
 
-```console
-./main_index 21 test_data/subject_x_21p_MNI.bundles subject  AtlasRo/ AtlasRo_estables.txt test_data/results_folder_SWM test_data/indices_folder_SWM
-```
+2.2. Segmentación de fascículos de fibras largas con datos de prueba:
+./main_index 21 test_data/subject_x_21p_MNI.bundles subject atlas_faisceaux/ atlas_faisceaux.txt test_data/DWM/results_folder test_data/DWM/indices_folder
 
-2.2. Codigo para Segmentar fascículos de fibras largas utilizando la carpeta de ejemplo:
+## Resultados
 
-```console
-./main_index 21 test_data/subject_x_21p_MNI.bundles subject atlas_faisceaux/  atlas_faisceaux.txt test_data/results_folder_DWM test_data/indices_folder_DWM
+- result_folder: Se almacenarán las fibras de los fascículos segmentados con el prefijo especificado (en este caso, "subject").
+- indices_folder: Se generará un archivo de texto por cada fascículo segmentado, con el mismo nombre del fascículo. Este archivo contiene los índices de las fibras segmentadas y permite rastrearlas entre tractogramas, facilitando el cambio de espacio de referencia o de formato de manera rápida.
 
-```
-
-
+## Citation
 
 ## Citation
