@@ -23,8 +23,24 @@ En este repositorio se tienen los archivos necesarios para realizar la segmentac
 ## Modo de Uso
 
 > [!IMPORTANT]  
-> **Para que la segmentación funcione correctamente el tractograma a segmentar debe estar en el espacio de referencia MNI152 y en el formato .bundles.**
+> **Para que la segmentación funcione correctamente el tractograma a segmentar debe estar en el espacio de referencia MNI152 y las fibras remuestradas a 21 puntos equidistantes (en el formato .bundles).**
 
+1.- Abre una terminal en la carpeta donde se tiene el ejecutable
+
+2.- Correr el ejecutable especificando la carpeta de fascículos y archivo de distancias dependiendo de los fascículos a segmentar:
+
+2.1. Codigo para Segmentar fascículos de fibras cortas (estables) utilizando la carpeta de ejemplo:
+
+```console
+./main_index 21 test_data/subject_x_21p_MNI.bundles subject  AtlasRo/ AtlasRo_estables.txt test_data/results_folder_SWM test_data/indices_folder_SWM
+```
+
+2.2. Codigo para Segmentar fascículos de fibras largas utilizando la carpeta de ejemplo:
+
+```console
+./main_index 21 test_data/subject_x_21p_MNI.bundles subject atlas_faisceaux/  atlas_faisceaux.txt test_data/results_folder_DWM test_data/indices_folder_DWM
+
+```
 
 
 
