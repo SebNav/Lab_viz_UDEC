@@ -1,0 +1,1 @@
+# Algoritmo de segmentación de fibras de fascículos para datos de tractografías en el espacio MNI152
