@@ -7,5 +7,20 @@ Repositorio que almacena los algoritmos/pipelines más utilizados en el laborato
 
 > [!IMPORTANT] 
 
-> Para el correcto funcionamiento de los programas y algoritmos/pipelines, se recomienda utilizar un ordenador con el sistema operativo Ubuntu 22.04. Si bien la mayoría de los programas funciona con versiones anteriores, estos programas e instalación de software se han testeado en esta versión.
+> Para garantizar el correcto funcionamiento de los programas y algoritmos, se recomienda utilizar un ordenador con Ubuntu 22.04. Aunque algunos programas pueden funcionar en versiones anteriores de Ubuntu, todas las configuraciones y pruebas se han realizado en esta versión específica.
 
+
+> [!NOTE]  
+> Highlights information that users should take into account, even when skimming.
+
+> [!TIP]
+> Optional information to help a user be more successful.
+
+> [!IMPORTANT]  
+> Crucial information necessary for users to succeed.
+
+> [!WARNING]  
+> Critical content demanding immediate user attention due to potential risks.
+
+> [!CAUTION]
+> Negative potential consequences of an action.
