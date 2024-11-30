@@ -1,1 +1,9 @@
 # Algoritmo de segmentación de fibras de fascículos para datos de tractografías en el espacio MNI152
+
+## Descripción
+
+Método de segmentación de fibras basado en la distancia euclidiana máxima de las fibras de un tractograma con respecto a las fibras del atlas de fascículos que se van a utilizar para la segmentación.
+Este método fue propuesto originalmente por Labra [N. Labra et al., 2017] y posteriormente paralelizado por Vázquez [Vázquez et al., 2019].
+## Modo de Uso
+
+## Citation
