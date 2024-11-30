@@ -7,6 +7,16 @@ Método de segmentación de fibras basado en la distancia euclidiana máxima de 
 En este repositorio se tienen los archivos necesarios para realizar la segmentacion de fascículos de fibras largas (DWM atlas [Guevara et al., 2012] y fasciculos de fibras cortas (SWM atlas [Godoy et al., 2021]). 
 
 
+* AtlasRo/             : Carpeta con los fascículos de fibras cortas SWM (.bundles)
+* AtlasRo_tck/         : Carpeta con los fascículos de fibras cortas SWM (.tck)
+* atlas_faisceaux/     : Carpeta con los fascículos de fibras largas DWM (.bundles)
+* atlas_faisceaux_tck/ : Carpeta con los fascículos de fibras largas DWM (.tck)
+* AtlasRo.txt          : Archivo de texto que especifica la distancia Euclideana maxima utilizada para la segmentacion **de todos** los fascículos de fibras cortas 
+* AtlasRo_estables.txt : Archivo de texto que especifica la distancia Euclideana maxima utilizada para la segmentacion de los 208 fascículos de fibras cortas más estables
+* atlas_faisceaux.txt  : Archivo de texto que especifica la distancia Euclideana maxima utilizada para la segmentacion de los fascículos de fibras largas
+* main_index           : Ejecutable de codigo escrito en C++ que genera la segmentación de datos
+
+
 ## Modo de Uso
 
 > [!IMPORTANT]  
