@@ -7,4 +7,4 @@ Repositorio que almacena los algoritmos/pipelines más utilizados en el laborato
 
 
 > [!IMPORTANT]  
-> Para garantizar el correcto funcionamiento de los programas y algoritmos, se recomienda utilizar un ordenador con Ubuntu 22.04. Aunque algunos programas pueden funcionar en versiones anteriores de Ubuntu, todas las configuraciones y pruebas se han realizado en esta versión específica.
+> Para garantizar el correcto funcionamiento de los programas y algoritmos, se recomienda utilizar un ordenador con **Ubuntu 22.04.** Aunque algunos programas pueden funcionar en versiones anteriores de Ubuntu, todas las configuraciones y pruebas se han realizado en esta versión específica.
