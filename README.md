@@ -5,7 +5,7 @@
 Repositorio que almacena los algoritmos/pipelines más utilizados en el laboratorio, así como guías para instalar los diversos programas más usados y descargar las bases de datos empleadas (en progreso).
 
 
-[!IMPORTANT] 
+> [!IMPORTANT] 
 
-Para el correcto funcionamiento de los Software y algoritmos/pipelines se recomienda utilizar un computador con sistema operativo Ubuntu 22.04, si bien gran parte de los programas funciona con versiones anteriores estos programas e instalacion de Software fueron testeados en esta version.
+> Para el correcto funcionamiento de los programas y algoritmos/pipelines, se recomienda utilizar un ordenador con el sistema operativo Ubuntu 22.04. Si bien la mayoría de los programas funciona con versiones anteriores, estos programas e instalación de software se han testeado en esta versión.
 
