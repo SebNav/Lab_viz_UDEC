@@ -2,13 +2,10 @@
 
 ## Descripción
 
-Método de segmentación de fibras basado en la distancia euclidiana máxima de las fibras de un tractograma con respecto a las fibras del atlas de fascículos a utilizar para la segmentación.
-
-Este método fue propuesto originalmente por Labra [N. Labra et al., 2017] y posteriormente paralelizado por Vázquez [Vázquez et al., 2019].
+Método de segmentación de fibras basado en la distancia euclidiana máxima de las fibras de un tractograma con respecto a las fibras del atlas de fascículos a utilizar para la segmentación. Este método fue propuesto originalmente por Labra [N. Labra et al., 2017] y posteriormente paralelizado por Vázquez [Vázquez et al., 2019].
 
 
-En este repositorio se tiene las archivos necesarios para la segmentacion de fascículos 
-
+En este repositorio se encuentran los archivos necesarios para aplicar el método de segmentación para segmentar los fascículos del atlas de fascículos largos DWM [Guevara et al., 2012] y los fascículos de fibras cortas SWM [Godoy et al., 2021].
 ## Modo de Uso
 
 > [!IMPORTANT]  
