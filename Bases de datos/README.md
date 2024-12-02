@@ -5,7 +5,7 @@ Aqui se puede encontrar links para la descarga de diversas bases de datos public
 
 ## ARCHI Database
 
-Bases de datos privada? que contiene datos de tractografía de 79 adultos jovenes sanos.
+Bases de datos privada? que contiene datos de tractografía, transformadas a espacio Talairach y mallados de 79 adultos jovenes sanos.
 
 | **Muestreo**     | **Matriz**  | **Vóxeles**               | **b-values**        | **n° de direcciones de difusión** | **Modelo de difusión** |
 |------------------|-------------|---------------------------|---------------------|-----------------------------------|------------------------|
