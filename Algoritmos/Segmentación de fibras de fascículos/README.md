@@ -13,7 +13,6 @@ En este repositorio se tienen los archivos necesarios para realizar la segmentac
 | AtlasRo_tck/            | Carpeta con los fascículos de fibras cortas SWM (.tck)                                       |
 | atlas_faisceaux/        | Carpeta con los fascículos de fibras largas DWM (.bundles)                                   |
 | atlas_faisceaux_tck/    | Carpeta con los fascículos de fibras largas DWM (.tck)                                       |
-| test_data/              | Carpeta para testear el uso del metodo de segmentación                                       |
 | AtlasRo.txt             | Archivo de texto que especifica la distancia Euclideana máxima utilizada para la segmentación de todos los fascículos de fibras cortas |
 | AtlasRo_estables.txt    | Archivo de texto que especifica la distancia Euclideana máxima utilizada para la segmentación de los 208 fascículos de fibras cortas más estables |
 | atlas_faisceaux.txt     | Archivo de texto que especifica la distancia Euclideana máxima utilizada para la segmentación de los fascículos de fibras largas |
