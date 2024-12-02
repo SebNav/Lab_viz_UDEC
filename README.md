@@ -2,7 +2,6 @@
 
 ## Descripción
 
-###Jpicp ql
 
 Repositorio que almacena los algoritmos/pipelines más utilizados en el laboratorio, así como guías para instalar los diversos programas más usados y descargar las bases de datos empleadas (en progreso).
 
