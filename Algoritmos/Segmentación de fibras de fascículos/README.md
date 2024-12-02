@@ -26,6 +26,12 @@ En este repositorio se tienen los archivos necesarios para realizar la segmentac
 > [!IMPORTANT]  
 > **Para que la segmentación funcione correctamente el tractograma a segmentar debe estar en el espacio de referencia MNI152 y las fibras remuestradas a 21 puntos equidistantes (en el formato .bundles).**
 
+El siguiente enlace contiene archivos de ejemplo para probar el funcionamiento de la segmentación en su dispositivo:
+
+**https://drive.google.com/drive/folders/1sfcVBNMhlxCPAVE_BoPI9hZH3tKV8LYW?usp=drive_link**
+
+Aplicación:
+
 1.- Abre una terminal en la carpeta donde se tiene el ejecutable.
 
 2.- Correr el ejecutable especificando la carpeta de fascículos y archivo de distancias dependiendo de los fascículos a segmentar:
