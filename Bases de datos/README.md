@@ -8,7 +8,8 @@ Aqui se puede encontrar links para la descarga de diversas bases de datos public
 Bases de datos privada? que contiene datos de tractografía de 79 adultos jovenes sanos.
 
 | Muestreo         | Matriz | Vóxeles          | b-values          | n° de direcciones de difusion | Modelo de difusión|
-|Single-Shell | 128x128 | 1.7 mm vóxel Isotrópicos, 70 cotes | 1500 s/mm² | 60 | QBI |
+|----------------------------------------------------------------------------------------------------------------------|
+|Single-Shell      | 128x128 | 1.7 mm vóxel Isotrópicos| 70 cortes | 1500 s/mm² | 60 | QBI |
 
 
 https://drive.google.com/drive/folders/1PYfu5JUx2Mn7X5Ym5UleWIbEBhycmBKG?usp=drive_link
@@ -19,7 +20,7 @@ https://drive.google.com/drive/folders/1PYfu5JUx2Mn7X5Ym5UleWIbEBhycmBKG?usp=dri
 ## HCP test-retest
 
 
-## HCP Early Psychosis
+## HCP Early Psychosis	
 
 
 
