@@ -1,4 +1,7 @@
-## MRtrxi3 
+## MRtrix3 
+
+![Alt text](https://www.mrtrix.org/images/frontpage/mrview.jpg)
+
 
 > [!CAUTION]
 > Si bien MRtrix3 puede instalarse en computadoras con Windows o Mac, en estos sistemas operativos diversas funciones del software no funcionan correctamente o son muy difíciles de hacer funcionar. Se recomienda utilizar Ubuntu 22.04 para el uso de MRtrix3.
