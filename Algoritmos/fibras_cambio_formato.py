@@ -45,9 +45,10 @@ def file_bundles2tck(bundle_path,bundle_output_path):
     centroids_tractogram_file.affine_to_rasmm = np.eye(4)
     centroids_tck = TF.TckFile(centroids_tractogram_file,header = {'timestamp':0})
     centroids_tck.save(bundle_output_path)
-    
-#%%
-def Folder_bundle2tck(bundle_path,bundle_output_path,crear_carpetas=False):
+
+
+
+def folder_bundle2tck(bundle_path,bundle_output_path,crear_carpetas=False):
 
     """
     Parametros
@@ -72,14 +73,44 @@ def Folder_bundle2tck(bundle_path,bundle_output_path,crear_carpetas=False):
     if not os.path.exists(bundle_output_path):
         
         if not crear_carpetas:
-            AssertionError("Error la carpeta donde se quieren guardar los fascículos no existe, modifique crear_carpetas a True para que el comando cree la carpeta")
+            assert  crear_carpetas ,"Error la carpeta donde se quieren guardar los fascículos no existe, modifique crear_carpetas a True para que el comando cree la carpeta"
         else:
             os.makedirs(bundle_output_path)
             
 
-    archivos_bundles   = os.makedirs(bundle_path):
+    archivos_bundles = os.listdir(bundle_path)
+    archivos = [name.rstrip('.bundles').rstrip('.bundlesdata') for name in archivos_bundles]
+    archivos = sorted(list(set(archivos)))
     
-    
+    for fasc in archivos:
+        streamlines        = bt.read_bundle(bundle_path+fasc+".bundles")
+        streamlines        = np.array(streamlines)
+        streamlines_tck    = transform_streamlines(streamlines, T_inv)
+        
+        centroids_tractogram_file = Tractogram(streamlines = streamlines_tck)
+        centroids_tractogram_file.affine_to_rasmm = np.eye(4)
+        centroids_tck = TF.TckFile(centroids_tractogram_file,header = {'timestamp':0})
+        centroids_tck.save(bundle_output_path+fasc+".tck")
+
+
+def file_tck2bundles(bundle_path,bundle_output_path):
+
+    """
+    Comando para transformar streamlines en formato tck a bundles
+    Parametros
+    ----------
+    bundle_path : str
+        Path al archivo .bundles.
+        ejemplo = "Pepito/tractografia/Tractografía.tck"
+        ejemplo: .
+    bundle_output_path :str
+        Path donde se guardara el archivo .bundles.
+        ejemplo = "Pepito/tractografia/Tractografía_2.bundles"
+        
+    Returns
+    None.
+
+    """
     
     streamlines        = bt.read_bundle(bundle_path)
     streamlines        = np.array(streamlines)
@@ -89,11 +120,9 @@ def Folder_bundle2tck(bundle_path,bundle_output_path,crear_carpetas=False):
     centroids_tractogram_file.affine_to_rasmm = np.eye(4)
     centroids_tck = TF.TckFile(centroids_tractogram_file,header = {'timestamp':0})
     centroids_tck.save(bundle_output_path)
-#%%
-bundles = os.listdir("atlas_faisceaux")
-bundles = [b.rstrip("data") for b in bundles]
-bundles = list(set(bundles))
 
-for bun in bundles:
-    print(bun)
-    file_bundles2tck("atlas_faisceaux/"+bun, "atlas_faisceaux_tck/"+bun[:-7]+"tck")
+
+
+
+folder_bundle2tck("test_data/fibras_bundles/", "test_data/fibras_tck_prueba/",crear_carpetas=True)
+
