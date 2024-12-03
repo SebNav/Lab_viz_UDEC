@@ -56,7 +56,7 @@ def apply_aff_point(inPoint,t):
 def file_fchange(bundle_path,bundle_output_path,format_change,header="MNI152_T1_1mm.nii.gz",nthreads=-1):
 
     """
-        Comando para transformar streamlines en formato .tck a bundles.
+        Comando para transformar formatos de tractos para archivos
         
         Parámetros  
         ----------  
@@ -128,7 +128,7 @@ def file_fchange(bundle_path,bundle_output_path,format_change,header="MNI152_T1_
 def folder_fchange(bundle_path,bundle_output_path,format_change,header="MNI152_T1_1mm.nii.gz",nthreads=-1,crear_carpeta=False):
 
     """
-        Comando para transformar streamlines en formato .tck a bundles.
+       Comando para transformar formatos de tractos para carpetas
         
         Parámetros  
         ----------  
