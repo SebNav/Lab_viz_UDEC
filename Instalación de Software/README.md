@@ -25,6 +25,30 @@ Mrview
 
 ## FSL
 
+![Alt text](https://s3.us-east-2.amazonaws.com/brainder/2015/fsl-rpi/screenshot_debian_lxde_rpi2.png)
+
+> [!CAUTION]
+> Esta guia describe el proceso de instalación de FSL en Ubuntu, si se quiere instalar FSL en otro sistema operativo siga el proceso descrito en https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/linux.
+
+1.- Descargar el instalador de python **fslinstaller.py**
+
+2.- Abrir una terminal y correr el script usando python 
+
+```console
+python ~/Downloads/fslinstaller.py
+```
+
+si utilizando python no funciona prueba usando python3
+
+```console
+python3 ~/Downloads/fslinstaller.py
+```
+
+3.- Verificar instalación:
+
+Escribe ```bash echo $FSLDIR``` en el terminal. Esto deberia imprimir en pantalla la ubicacion donde FSL fue instalado, por ejemplo ```bash /home/labimagenes/fsl```
+
+
 ## Ants
 
 ## Freesurfer
