@@ -80,7 +80,13 @@ Si presentan otro tipo de problemas revisa el apartado de Troubleshooting oficia
 
 ![Alt text](https://andysbrainbook.readthedocs.io/en/stable/_images/06_Freeview_Example.png)
 
-Para instalar Freesurfer se recomienda seguir la guia oficial https://drive.google.com/file/d/1uNwv29fCeuMHrmTyXw94ZSuroNsPOxu-/view?pli=1 desde la pagina 27 en apartado "To use the wget command from the terminal, cut and paste (or type in) the following commands into the terminal window:" en adelante (Las paginas anteriores describen el proceso de instalación de una maquina virtual)
+Para instalar FreeSurfer, se recomienda seguir la guía oficial disponible en el siguiente enlace:  
+https://drive.google.com/file/d/1uNwv29fCeuMHrmTyXw94ZSuroNsPOxu-/view?pli=1
+
+Comience desde la página 27, en el apartado:  
+"To use the wget command from the terminal, cut and paste (or type in) the following commands into the terminal window:".
+
+(Las páginas anteriores describen el proceso de instalación en una máquina virtual.)
 
 ## BrainVISA / Anatomist
 
