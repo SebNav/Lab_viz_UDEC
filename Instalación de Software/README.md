@@ -78,6 +78,9 @@ Si presentan otro tipo de problemas revisa el apartado de Troubleshooting oficia
 
 ## Freesurfer
 
+![Alt text](https://www.researchgate.net/profile/Efren-Murillo-Zamora/publication/374489831/figure/fig1/AS:11431281196265744@1696597965800/MRI-volumetry-of-the-brain-with-FreeSurfer-software-A-a-3D-image-of-the-pial-area-The.png)
+
+Para instalar Freesurfer se recomienda seguir la guia oficial https://drive.google.com/file/d/1uNwv29fCeuMHrmTyXw94ZSuroNsPOxu-/view?pli=1 desde la pagina 27 en apartado "To use the wget command from the terminal, cut and paste (or type in) the following commands into the terminal window:" en adelante (Las paginas anteriores describen el proceso de instalación de una maquina virtual)
 
 ## BrainVISA / Anatomist
 
