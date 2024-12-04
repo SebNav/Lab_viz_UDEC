@@ -30,23 +30,48 @@ Mrview
 > [!CAUTION]
 > Esta guia describe el proceso de instalación de FSL en Ubuntu, si se quiere instalar FSL en otro sistema operativo siga el proceso descrito en https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/linux.
 
-1.- Descargar el instalador de python **fslinstaller.py**
+I) Descargar el instalador de Python **fslinstaller.py**.
 
-2.- Abrir una terminal y correr el script usando python 
+II) Abrir una terminal y ejecutar el script usando Python:
 
 ```console
 python ~/Downloads/fslinstaller.py
 ```
 
-si utilizando python no funciona prueba usando python3
-
+Si el comando anterior no funciona, pruebe con python
+3:
 ```console
 python3 ~/Downloads/fslinstaller.py
 ```
 
-3.- Verificar instalación:
+III) Verificar la instalación:
 
-Escribe ```bash echo $FSLDIR``` en el terminal. Esto deberia imprimir en pantalla la ubicacion donde FSL fue instalado, por ejemplo ```bash /home/labimagenes/fsl```
+1.- Escribe ```echo $FSLDIR``` en la terminal. Esto debería imprimir en pantalla la ubicación donde FSL fue instalado, por ejemplo: ```/home/labimagenes/fsl```.
+
+2.- Abre el GUI de fsl escribiendo en el terminal ```fsl```.
+
+3.- Abre el GUI de FSLeyes, escribiendo en el terminal ```fsleyes -std &```, esto deberia abrir FSL con una template MNI152 T1.
+
+IV) Solución de problemas:
+Si alguno de los pasos de verificación no funcionó, es posible que sea necesario añadir la ubicación de FSL en el archivo .bashrc. Para ello, sigue estos pasos:
+
+1.- Abre una terminal y edita el archivo .bashrc escribiendo:
+
+```console
+open .bashrc
+```
+
+2.- Añade al final del archivo la siguiente línea, reemplazando con la ruta donde está instalado FSL (por ejemplo, /home/nombre_de_usuario/fsl):
+
+``` console
+export FSLDIR=/home/labimagenes/fsl
+```
+
+3.- Guarda los cambios y reinicia la terminal.
+
+4.- Vuelve a intentar los pasos de verificación.
+
+Si presentan otro tipo de problemas revisa el apartado de Troubleshooting oficial de FSL https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/troubleshooting
 
 
 ## Ants
