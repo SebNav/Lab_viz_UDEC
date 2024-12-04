@@ -1,5 +1,6 @@
 # Registro de Imagenes y Tractogramas
 
+![Alt text](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyTT4VXi-B-luZQ6LO3wm1UlDqE5M5dRlfQHIGkUXktZvK0dRiAEmYj-SMgm2v0he2gK0&usqp=CAU)
 
 El registro en neuroimagen es el proceso de alinear diferentes conjuntos de datos, como imágenes cerebrales o tractogramas, en un mismo espacio de referencia para permitir su comparación y análisis conjunto.
 
