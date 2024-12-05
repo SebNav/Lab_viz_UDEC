@@ -64,7 +64,10 @@ open .bashrc
 2.- Añade al final del archivo la siguiente línea, reemplazando con la ruta donde está instalado FSL (por ejemplo, /home/nombre_de_usuario/fsl):
 
 ``` console
-export FSLDIR=/home/labimagenes/fsl
+FSLDIR=/home/nombre_de_usaario/fsl
+. ${FSLDIR}/etc/fslconf/fsl.sh
+PATH=${FSLDIR}/bin:${PATH}
+export FSLDIR PATH
 ```
 
 3.- Guarda los cambios y reinicia la terminal.
