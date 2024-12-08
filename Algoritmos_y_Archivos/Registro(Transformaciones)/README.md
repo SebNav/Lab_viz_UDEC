@@ -20,6 +20,9 @@ Registro de tractogramas: Proceso en el cual se alinea la posición espacial de 
 
 ## Ejemplos
 
+> [!IMPORTANT]
+> Los ejemplos descritos muestran el proceso de registro utilizando funciones de los Software FSL y Mrtrix3.
+
 ### Transformación Lineal de Imagenes
 
 ### Transformación No-Linear de Imagenes
