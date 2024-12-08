@@ -13,9 +13,6 @@ Registro de tractogramas: Proceso en el cual se alinea la posición espacial de 
 
 ![](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Affine_transform.gif)
 
-⎡ 1  2  3 ⎤
-⎢ 4  5  6 ⎥
-⎣ 7  8  9 ⎦
 
 ## Transformaciones no-lineales (Warps)
 
@@ -33,6 +30,11 @@ Es relevante manejar esta información ya que distintos Software pueden preferir
 
 > [!IMPORTANT]
 > Los ejemplos descritos muestran el proceso de registro utilizando funciones de los Software FSL y Mrtrix3.
+> [!CAUTION]
+> Si la imagen de referencia no presenta cráneo y la imagen que se va a mover sí lo tiene, se recomienda eliminar el cráneo de la imagen que se va a mover para mejorar la calidad del registro. Si la imagen de referencia presenta cráneo, se recomienda que la imagen que se va a mover también lo tenga.
+
+
+
 
 ### Transformación Lineal de Imagenes
 
