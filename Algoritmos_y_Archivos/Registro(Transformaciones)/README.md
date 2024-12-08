@@ -30,6 +30,7 @@ Es relevante manejar esta información ya que distintos Software pueden preferir
 
 > [!IMPORTANT]
 > Los ejemplos descritos muestran el proceso de registro utilizando funciones de los Software FSL y Mrtrix3.
+
 > [!CAUTION]
 > Si la imagen de referencia no presenta cráneo y la imagen que se va a mover sí lo tiene, se recomienda eliminar el cráneo de la imagen que se va a mover para mejorar la calidad del registro. Si la imagen de referencia presenta cráneo, se recomienda que la imagen que se va a mover también lo tenga.
 
