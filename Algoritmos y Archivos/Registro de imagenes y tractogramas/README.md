@@ -12,6 +12,9 @@ Registro de tractogramas: Proceso en el cual se alinea la posición espacial de 
 
 ### Transformaciones lineales 
 
+![](https://github.com/Lab_viz_UDEC/Algoritmos y Archivos/Affine_transform.gif)
+
+
 ### Transformaciones no-lineales (Warps)
 
 ## Registro de Tractogramas
