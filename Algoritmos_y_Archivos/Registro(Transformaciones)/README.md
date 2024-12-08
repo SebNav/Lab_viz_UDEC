@@ -13,7 +13,9 @@ Registro de tractogramas: Proceso en el cual se alinea la posición espacial de 
 
 ![](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Affine_transform.gif)
 
-\vec{v} = \begin{bmatrix} X \\\ Y \end{bmatrix}
+⎡ 1  2  3 ⎤
+⎢ 4  5  6 ⎥
+⎣ 7  8  9 ⎦
 
 ## Transformaciones no-lineales (Warps)
 
