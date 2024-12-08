@@ -27,4 +27,13 @@ Registro de tractogramas: Proceso en el cual se alinea la posición espacial de 
 
 ### Transformación No-Linear de Imagenes
 
+Los warps pueden almacenar la información de las transformaciones de dos formas distintas:
+
+**Deformation fields:** Se define como una imagen en la que cada vóxel define la posición correspondiente en la otra imagen (en coordenadas del espacio del escáner).
+
+**Displacement fields:** Un campo de desplazamiento almacena los desplazamientos (en mm) a la otra imagen desde la posición de cada vóxel (en el espacio del escáner). 
+
+Es relevante manejar esta información ya que distintos Software pueden preferir generar y/o usar un tipo especifico de warps, generando errores o resultados no esperados si se ultiliza uno distinto. Si es que se tiene un tipo de warp y se necesita el otro existen funciones como warpconvert de Mrtrix3 que permite modificar el tipo de warp.
+
+
 ### Transformación de Tractogramas
