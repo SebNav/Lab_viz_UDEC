@@ -13,8 +13,15 @@ Registro de tractogramas: Proceso en el cual se alinea la posición espacial de 
 
 ![](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Affine_transform.gif)
 
+El registro mediante transformaciones afines consiste en una transormación lineal seguida de una traslación la cual se aplica a cada voxel de la imagen. 
+La transformacion afin esta es representanda mediante una matriz 4x4 donde los 12 componenentes representan una accion distinta (Escalado, Rotacion, Cizallamiento y Traslación).
+Existen distintos tipos de translaciones para imagenes 3D dependiendo de cuantos DOF (Degrees of Freedom) se utilicen 12(affine), 9(traditional),7(global escale y 6(rigid body).
+
+![Alt text](https://community.mrtrix.org/uploads/default/original/2X/a/a589b481ff0e5c763d9740824f1787487c04276e.png)
+
 
 ## Transformaciones no-lineales (Warps)
+
 
 Los warps pueden almacenar la información de las transformaciones de dos formas distintas:
 
