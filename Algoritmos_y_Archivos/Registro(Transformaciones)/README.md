@@ -44,7 +44,7 @@ Es relevante manejar esta información ya que distintos Software pueden preferir
 
 Para este caso, tenemos una imagen estructural T1w que necesitamos registrar al espacio de las imágenes de difusión. Este es un proceso común, ya que se requiere la imagen T1w en el espacio de difusión para realizar diversos procedimientos. Por ejemplo, se utiliza para mejorar la calidad de la tractografía aplicando ACT (Anatomically Constrained Tractography) mediante la imagen 5TT (5 Tissue Types), que se genera a partir de la T1w. Además, tener una imagen del cerebro de buena calidad en el espacio de difusión permite crear mejores máscaras, transformaciones, entre otros elementos esenciales.
 
-
+1.-
 
 
 ### Transformación Lineal de Imagenes
