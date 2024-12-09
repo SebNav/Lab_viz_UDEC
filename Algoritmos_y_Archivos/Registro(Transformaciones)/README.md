@@ -13,9 +13,9 @@ Registro de tractogramas: Proceso en el cual se alinea la posición espacial de 
 
 ![](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Affine_transform.gif)
 
-El registro mediante transformaciones afines consiste en una transormación lineal seguida de una traslación la cual se aplica a cada voxel de la imagen. 
-La transformacion afin esta es representanda mediante una matriz 4x4 donde los 12 componenentes representan una accion distinta (Escalado, Rotacion, Cizallamiento y Traslación).
-Existen distintos tipos de translaciones para imagenes 3D dependiendo de cuantos DOF (Degrees of Freedom) se utilicen 12(affine), 9(traditional),7(global escale y 6(rigid body).
+El registro mediante transformaciones afines consiste en una transformación lineal seguida de una traslación, que se aplica a cada vóxel de la imagen.
+La transformación afín se representa mediante una matriz de 4x4, en la cual los 12 componentes corresponden a diferentes acciones: escalado, rotación, cizallamiento y traslación.
+Existen distintos tipos de transformaciones para imágenes 3D según el número de grados de libertad (Degrees of Freedom, DOF) utilizados: 12 (afín), 9 (tradicional), 7 (escalado global) y 6 (cuerpo rígido).
 
 ![Alt text](https://community.mrtrix.org/uploads/default/original/2X/a/a589b481ff0e5c763d9740824f1787487c04276e.png)
 
@@ -38,15 +38,17 @@ Es relevante manejar esta información ya que distintos Software pueden preferir
 > [!IMPORTANT]
 > Los ejemplos descritos muestran el proceso de registro utilizando funciones de los Software FSL y Mrtrix3.
 
+### Registro de imagen estructural T1w con imagenes DWI
 
 ![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/T1w_dwi_overlay.png)
 
-
+Para este caso, tenemos una imagen estructural T1w que necesitamos registrar al espacio de las imágenes de difusión. Este es un proceso común, ya que se requiere la imagen T1w en el espacio de difusión para realizar diversos procedimientos. Por ejemplo, se utiliza para mejorar la calidad de la tractografía aplicando ACT (Anatomically Constrained Tractography) mediante la imagen 5TT (5 Tissue Types), que se genera a partir de la T1w. Además, tener una imagen del cerebro de buena calidad en el espacio de difusión permite crear mejores máscaras, transformaciones, entre otros elementos esenciales.
 
 
 
 
 ### Transformación Lineal de Imagenes
+
 
 ### Transformación No-Linear de Imagenes
 
