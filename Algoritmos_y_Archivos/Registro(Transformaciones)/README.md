@@ -54,7 +54,7 @@ Para este caso, tenemos una imagen estructural T1w que necesitamos registrar al 
 mri_synthstrip -i T1w_acpc_dc.nii.gz -o T1w_acpc_dc_brain.nii.gz
 ```
 
-![Alt text]
+![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Brain_striping.png)
 
 
 	
