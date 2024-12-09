@@ -46,8 +46,17 @@ Para este caso, tenemos una imagen estructural T1w que necesitamos registrar al 
 
 1.- **Remover Craneo:** La imagen estructural T1w presenta el cerebro, creaneo y otros tejidos de la cabeza. para mejorar la calidad del registro es necesario remover todo lo que no sea cerebro, para ello existen muchos funciones de distintos programas aqui una lista de distintos comandos que existem:
 
-- [mri_synthstrip](https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/) (Freesurfer)(mi preferido)
-	
+- [Freesurfer mri_synthstrip](https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/) (mi preferido)
+- [fsl bet](https://web.mit.edu/fsl_v5.0.10/fsl/doc/wiki/BET(2f)UserGuide.html)
+- [antsBrainExtraction.sh](https://github.com/ANTsX/ANTs/blob/master/Scripts/antsBrainExtraction.sh)
+
+```console
+mri_synthstrip -i T1w_acpc_dc.nii.gz -o T1w_acpc_dc_brain.nii.gz
+```
+
+![Alt text]
+
+
 	
 
 
