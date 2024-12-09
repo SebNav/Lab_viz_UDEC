@@ -44,7 +44,11 @@ Es relevante manejar esta información ya que distintos Software pueden preferir
 
 Para este caso, tenemos una imagen estructural T1w que necesitamos registrar al espacio de las imágenes de difusión. Este es un proceso común, ya que se requiere la imagen T1w en el espacio de difusión para realizar diversos procedimientos. Por ejemplo, se utiliza para mejorar la calidad de la tractografía aplicando ACT (Anatomically Constrained Tractography) mediante la imagen 5TT (5 Tissue Types), que se genera a partir de la T1w. Además, tener una imagen del cerebro de buena calidad en el espacio de difusión permite crear mejores máscaras, transformaciones, entre otros elementos esenciales.
 
-1.-
+1.- **Remover Craneo:** La imagen estructural T1w presenta el cerebro, creaneo y otros tejidos de la cabeza. para mejorar la calidad del registro es necesario remover todo lo que no sea cerebro, para ello existen muchos funciones de distintos programas aqui una lista de distintos comandos que existem:
+
+	* [mri_synthstrip](https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/)(Freesurfer)(mi preferido)
+	*
+	*
 
 
 ### Transformación Lineal de Imagenes
