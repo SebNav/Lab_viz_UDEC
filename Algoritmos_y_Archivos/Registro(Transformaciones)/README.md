@@ -57,7 +57,13 @@ mri_synthstrip -i T1w_acpc_dc.nii.gz -o T1w_acpc_dc_brain.nii.gz
 ![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Brain_striping.png)
 
 
-	
+2. **Calculo de Transformación Afín:** 
+
+
+```console
+flirt -ref dwi_preproc_unbiased.nii.gz -in T1w_acpc_dc_brain.nii.gz -omat struct2dwi.mat -dof 12
+```
+-
 
 
 ### Transformación Lineal de Imagenes
