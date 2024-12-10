@@ -47,7 +47,7 @@ Para este caso, tenemos una imagen estructural T1w que necesitamos registrar al 
 
 1.- **Remover Craneo:** La imagen estructural T1w presenta el cerebro, creaneo y otros tejidos de la cabeza. para mejorar la calidad del registro es necesario remover todo lo que no sea cerebro, para ello existen muchos funciones de distintos programas aqui una lista de distintos comandos que existem:
 
-- [Freesurfer mri_synthstrip](https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/) (mi preferido)
+- [Freesurfer mri_synthstrip](https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/) (Personalmente uso este debido a la calidad de sus resultados pero ojo es un modelo DL puede generar malos resultados en la segmentación de infantes)
 - [fsl bet](https://web.mit.edu/fsl_v5.0.10/fsl/doc/wiki/BET(2f)UserGuide.html)
 - [antsBrainExtraction.sh](https://github.com/ANTsX/ANTs/blob/master/Scripts/antsBrainExtraction.sh)
 
@@ -58,7 +58,7 @@ mri_synthstrip -i T1w_acpc_dc.nii.gz -o T1w_acpc_dc_brain.nii.gz
 ![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Brain_striping.png)
 
 
-2. **Calculo de Transformación Afín:** 
+2. **Calculo de Transformación Afín:** Se utiliza el Software FSL para calcula y aplicar la transformación. 
 
 
 ```console
@@ -66,7 +66,7 @@ flirt -ref dwi_preproc_unbiased.nii.gz -in T1w_acpc_dc_brain.nii.gz -omat struct
 ```
 - ref: Imagen en el espacio de referencia
 - in: Imagen de entrada
-- omat:nombre del archivo donde se guardara la transformación afiín
+- omat: Nombre del archivo con la transfomación afín
 - dof: Cantidad de Degrees of Freedom que se utilizaran para calcular la transformación
 - out: Imagen transformada al espacio deseado.
 
