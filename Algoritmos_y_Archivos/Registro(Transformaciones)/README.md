@@ -88,7 +88,7 @@ Como podemos observar en la figura, la imagen T1w (en gris) está correctamente 
 
 Si la imagen de difusión utilizada no fue corregida por distorsiones EPI (EPI distortion correction) durante el preprocesamiento, es normal que la parte anterior del cerebro no quede perfectamente alineada. Esto ocurre porque, al calcular la imagen DWI, se utiliza un barrido de difusión en una dirección, lo que genera artefactos de achatamiento o estiramiento en la parte anterior del cerebro. Este efecto depende de la codificación de fase (phase encoding) utilizada para obtener la DWI, que usualmente es A-P (anterior-posterior) o P-A (posterior-anterior).
 
-![Alt text]()
+![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/T1w_DWI_space.png)
 
 ### Transformación Lineal de Imagenes
 
