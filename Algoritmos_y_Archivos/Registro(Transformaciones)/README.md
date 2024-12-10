@@ -37,7 +37,7 @@ Es relevante manejar esta información ya que distintos Software pueden preferir
 ## Ejemplos
 
 > [!IMPORTANT]
-> Los ejemplos descritos muestran el proceso de registro utilizando funciones de los Software FSL y Mrtrix3.
+> Los ejemplos descritos muestran el proceso de registro utilizando funciones de los Software FSL y Mrtrix3. Todos los archivos utilizados en los ejemplos se encuentran en la carpeta Test_data
 
 ### Registro de imagen estructural T1w con imagenes DWI
 
@@ -58,20 +58,37 @@ mri_synthstrip -i T1w_acpc_dc.nii.gz -o T1w_acpc_dc_brain.nii.gz
 ![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Brain_striping.png)
 
 
-2. **Calculo de Transformación Afín:** Se utiliza el Software FSL para calcula y aplicar la transformación. 
+2. **Promediado de b-zero's (Opcional):** Debido a que usaremos como referencia una imagen de difusión, la cual presenta múltiples volúmenes, se recomienda extraer y promediar las imágenes b-zero para obtener un promedio. Esto se debe a que este tipo de imágenes está compuesto por múltiples volúmenes calculados en diferentes momentos del tiempo, lo que genera pequeñas diferencias en la posición de los volúmenes debido al movimiento del paciente durante la adquisición. Si no se aplica este paso, la función de FSL que utilizaremos para la transformación tomará únicamente el primer volumen como referencia para la transformación.
+
+- Los siguientes comandos de Mrtrix3 extraen y promedios estos volumenes, para este paso se necesita los valores y las direcciones de los b-values.
+
+```console
+dwiextract dwi_preproc_unbiased.mif - -bzero -force | mrmath - mean bzero.nii.gz -axis 3 -force"
+```
+
+
+3. **Calculo de Transformación Afín:** Se utiliza el software FSL para calcular la transformada y MRtrix3 para aplicarla. Para garantizar que el resultado de la transformada sea de buena calidad, se recomienda utilizar como referencia la imagen con mayor resolución. Esto no supone un problema si es necesario dejar la imagen que se desea mover como referencia, ya que en ese caso simplemente se aplica la transformada inversa.
+
+En este caso, como contamos con una imagen T1w (alta resolución) y una imagen DWI (menor resolución), utilizaremos la T1w como referencia. Primero, utilizaremos el comando flirt de FSL para calcular la matriz afín. Luego, emplearemos el comando transformconvert de MRtrix3 para convertir el formato de la matriz a uno compatible con MRtrix3. Finalmente, aplicaremos la transformada inversa de la matriz afín calculada para obtener nuestra imagen T1w en el espacio de la DWI.
 
 
 ```console
-flirt -ref dwi_preproc_unbiased.nii.gz -in T1w_acpc_dc_brain.nii.gz -omat struct2dwi.mat -dof 12 -out T1w_acpc_dc_brain_dwi_space.nii.gz
+flirt -in mean_bzero.nii.gz -ref T1w_acpc_dc_brain.nii.gz -omat struct2dwi.mat -dof 12 
+transformconvert struct2dwi.mat mean_bzero.nii.gz T1w_acpc_dc_brain.nii.gz flirt_import struct2dwi_mrtrix.txt -force
+mrtransform T1w_acpc_dc_brain.nii.gz -linear struct2dwi_mrtrix.txt -inverse T1w_acpc_dc_brain_dwi_space.nii.gz -force
 ```
+
 - ref: Imagen en el espacio de referencia
 - in: Imagen de entrada
 - omat: Nombre del archivo con la transfomación afín
 - dof: Cantidad de Degrees of Freedom que se utilizaran para calcular la transformación
 - out: Imagen transformada al espacio deseado.
 
+Como podemos observar en la figura, la imagen T1w (en gris) está correctamente alineada con la imagen de difusión (en rojo). Las manchas rojas que se observan debajo del cerebro corresponden a los ojos y otros tejidos del sujeto. Si estos tejidos causan problemas en el registro, se podrían eliminar antes de aplicar la transformada, como se realizó con la imagen T1w.
 
+Si la imagen de difusión utilizada no fue corregida por distorsiones EPI (EPI distortion correction) durante el preprocesamiento, es normal que la parte anterior del cerebro no quede perfectamente alineada. Esto ocurre porque, al calcular la imagen DWI, se utiliza un barrido de difusión en una dirección, lo que genera artefactos de achatamiento o estiramiento en la parte anterior del cerebro. Este efecto depende de la codificación de fase (phase encoding) utilizada para obtener la DWI, que usualmente es A-P (anterior-posterior) o P-A (posterior-anterior).
 
+![Alt text]()
 
 ### Transformación Lineal de Imagenes
 
