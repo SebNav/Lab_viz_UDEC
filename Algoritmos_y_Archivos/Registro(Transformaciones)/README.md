@@ -4,10 +4,11 @@
 
 El registro en neuroimagen es el proceso de alinear diferentes conjuntos de datos, como imágenes cerebrales o tractogramas, en un mismo espacio de referencia para permitir su comparación y análisis conjunto.
 
-Registro de imágenes: Consiste en alinear imágenes de distintas modalidades (RM estructural, funcional o dMRI) o sujetos mediante transformaciones rígidas, afines o no lineales (warp).
+Registro de imágenes: Consiste en alinear imágenes de distintas modalidades (RM estructural, funcional o dMRI) o de diferentes sujetos mediante transformaciones rígidas, afines o no lineales (warp).
 
-Registro de tractogramas: Proceso en el cual se alinea la posición espacial de las fibras provenientes de un tractograma de un espacio a otro. Usualmente, las fibras se alinean a un espacio de referencia, como el MNI152, con el objetivo de realizar algún procedimiento en este espacio o llevar a cabo algún análisis.
+Registro de tractogramas: Es el proceso mediante el cual se alinea la posición espacial de las fibras provenientes de un tractograma de un espacio a otro. Usualmente, las fibras se alinean a un espacio de referencia, como el MNI152, con el objetivo de realizar procedimientos específicos o llevar a cabo análisis detallados en dicho espacio.
 
+La imagen que se somete a la transformación para ser alineada a otro espacio se conoce comúnmente como moving image o input image. Por otro lado, la imagen en el espacio deseado que utilizamos para calcular la transformada se denomina imagen de referencia, template o fixed image.
 
 ## Transformaciones afines 
 
@@ -61,9 +62,15 @@ mri_synthstrip -i T1w_acpc_dc.nii.gz -o T1w_acpc_dc_brain.nii.gz
 
 
 ```console
-flirt -ref dwi_preproc_unbiased.nii.gz -in T1w_acpc_dc_brain.nii.gz -omat struct2dwi.mat -dof 12
+flirt -ref dwi_preproc_unbiased.nii.gz -in T1w_acpc_dc_brain.nii.gz -omat struct2dwi.mat -dof 12 -out T1w_acpc_dc_brain_dwi_space.nii.gz
 ```
--
+- ref: Imagen en el espacio de referencia
+- in: Imagen de entrada
+- omat:nombre del archivo donde se guardara la transformación afiín
+- dof: Cantidad de Degrees of Freedom que se utilizaran para calcular la transformación
+- out: Imagen transformada al espacio deseado.
+
+
 
 
 ### Transformación Lineal de Imagenes
