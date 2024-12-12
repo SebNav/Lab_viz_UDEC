@@ -63,7 +63,7 @@ mri_synthstrip -i T1w_acpc_dc.nii.gz -o T1w_acpc_dc_brain.nii.gz
 - Los siguientes comandos de Mrtrix3 extraen y promedios estos volumenes, para este paso se necesita los valores y las direcciones de los b-values.
 
 ```console
-dwiextract dwi_preproc_unbiased.mif - -bzero -fslgrad diff.bvec diff.bval| mrmath - mean bzero.nii.gz -axis 3 
+dwiextract dwi_preproc_unbiased.nii.gz - -bzero -fslgrad diff.bvec diff.bval | mrmath - mean bzero.nii.gz -axis 3 
 ```
 
 
