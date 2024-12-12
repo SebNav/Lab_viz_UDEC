@@ -16,6 +16,7 @@ import nibabel.streamlines.tck as TF
 import os
 from joblib import Parallel, delayed
 from dipy.io.streamline import load_tractogram,save_tractogram
+from tqdm import tqdm
 
 """
 Faltan añadir documentacion sobre los header y algunos problemas relacionados con el cambio de tck y trk al visuaizarlos en dsi studio
@@ -176,7 +177,7 @@ def folder_fchange(bundle_path,bundle_output_path,format_change,header="MNI152_T
     
     assert  format_change in ["tck2trk","bundles2tck","tck2bundles","trk2tck"],"Cambio de formato especificado no existe"
     
-    for arch in archivos:
+    for arch in tqdm(archivos):
         if   format_change == "bundles2tck":
             
             
