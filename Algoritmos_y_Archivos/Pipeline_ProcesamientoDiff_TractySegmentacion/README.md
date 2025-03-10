@@ -47,3 +47,6 @@ Si se desea que el pipeline realice el proceso de segmentación y registro de fa
 ```
 python3 Procesamiento_Mrtrix3.py -folder Nombre_Carpeta_sujetos -segmentacion SWM DWM
 ```
+
+
+**Por ahora el pipeline permite solamente el metodo CSD y el calculo probabilistico de tractografías**
