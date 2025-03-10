@@ -7,25 +7,25 @@ Pipeline de preprocesamiento y calculo de tractografía creado por Sebastian Nav
 Folder  
    |  
    |--> Sujeto01  
-   |      |  
-   |      |--> diff.nii.gz  
-   |      |--> diff.bval  
-   |      |--> diff.bvec  
-   |      L--> T1w_acpc_dc_restore_brain.nii.gz  
+   |	|  
+   |	|--> diff.nii.gz  
+   |	|--> diff.bval  
+   |	|--> diff.bvec  
+   |	L--> T1w_acpc_dc_restore_brain.nii.gz  
    |  
    |--> Sujeto02  
-   |      |  
-   |      |--> diff.nii.gz  
-   |      |--> diff.bval  
-   |      |--> diff.bvec  
-   |      |--> T1w_acpc_dc_restore_brain.nii.gz  
+   |	|  
+   |	|--> diff.nii.gz  
+   |	|--> diff.bval  
+   |	|--> diff.bvec  
+   |	|--> T1w_acpc_dc_restore_brain.nii.gz  
    .  
    .  
    .  
    |--> SujetoXX  
-   |      |  
-   |      |--> diff.nii.gz  
-   |      |--> diff.bval  
-   |      |--> diff.bvec  
-   |      |--> T1w_acpc_dc_restore_brain.nii.gz  
+   	|  
+   	|--> diff.nii.gz  
+   	|--> diff.bval  
+   	|--> diff.bvec  
+   	|--> T1w_acpc_dc_restore_brain.nii.gz  
 
