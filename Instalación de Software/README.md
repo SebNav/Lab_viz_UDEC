@@ -20,7 +20,7 @@ conda install -c mrtrix3 mrtrix3
 Una vez instalado, para verificar que se haya instalado correctamente, se puede abrir el visualizador de MRtrix3 con el siguiente comando:
 
 ``` console
-Mrview
+mrview
 ```
 
 ## FSL
