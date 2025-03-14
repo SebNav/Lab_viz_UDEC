@@ -61,7 +61,7 @@ Si alguno de los pasos de verificación no funcionó, es posible que sea necesar
 open .bashrc
 ```
 
-2.- Añade al final del archivo la siguiente línea, reemplazando con la ruta donde está instalado FSL (por ejemplo, /home/nombre_de_usuario/fsl):
+2.- Añade al final del archivo la siguiente línea, reemplazando con la ruta donde está instalado FSL (por ejemplo, **/home/nombre_de_usuario/fsl**):
 
 ``` console
 FSLDIR=/home/nombre_de_usaario/fsl
