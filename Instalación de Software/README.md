@@ -30,7 +30,7 @@ mrview
 > [!CAUTION]
 > Esta guia describe el proceso de instalación de FSL en Ubuntu, si se quiere instalar FSL en otro sistema operativo siga el proceso descrito en https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/linux.
 
-I) Descargar el instalador de Python **fslinstaller.py**.
+I) Descargar el instalador de Python **fslinstaller.py** (esta en este mismo repositorio).
 
 II) Abrir una terminal y ejecutar el script usando Python:
 
