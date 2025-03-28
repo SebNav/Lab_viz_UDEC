@@ -2,36 +2,6 @@
 
 Pipeline automatico para la obtencion de los valores de promedio para las metricas de difusión FA, ADC, RD, AD para los fascículos de fibras largas(DWM) y/o fibras cortas(SWM). El algoritmo como salida un archivo excel (para cada metrica un excel distinto), donde se tiene los sujetos (de la carpeta que se pase para el procesamiento) con los valores promedio para cada fascículos.
 
-```
-Folder  
-   |  
-   |--> Sujeto01  
-   |	|  
-   |	|--> diff.nii.gz  
-   |	|--> diff.bval  
-   |	|--> diff.bvec  
-   |	L--> T1w_acpc_dc_restore_brain.nii.gz  
-   |  
-   |--> Sujeto02  
-   |	|  
-   |	|--> diff.nii.gz  
-   |	|--> diff.bval  
-   |	|--> diff.bvec  
-   |	|--> T1w_acpc_dc_restore_brain.nii.gz  
-   .  
-   .  
-   .  
-   |--> SujetoXX  
-   	|  
-   	|--> diff.nii.gz  
-   	|--> diff.bval  
-   	|--> diff.bvec  
-   	|--> T1w_acpc_dc_restore_brain.nii.gz  
-```
-
-
-
-
 ## Uso del programa
 
 Ejecuta el script desde la terminal con:
@@ -54,7 +24,7 @@ python3 Extraccion_metricas_v2.py [OPCIONES]
 
 #### Opcionales:
 
-- `-difusion_metric {FA,ADC,MD,RD}` #Este paso esta en proceso 
+- `-difusion_metric {FA,ADC,MD,RD}` #Este opcion esta en proceso de implementacion actualmente calcula el excel para todo los tipos de metricas
   Métrica de difusión para los cálculos:  
   - `FA`: Anisotropía Fraccional  
   - `ADC`: Coeficiente de Difusión Aparente  
@@ -80,14 +50,16 @@ python3 Extraccion_metricas_v2.py [OPCIONES]
 
 1. Procesamiento básico:
 ```bash
-python nombre_del_script.py -folder /datos/pacientes -segmentacion SWM
+python Extraccion_metricas_v2.py -folder /datos/pacientes -segmentacion SWM
 ```
 
 2. Procesamiento completo con todas las opciones:
 ```bash
-python nombre_del_script.py -folder /datos/pacientes -segmentacion SWM DWM -difusion_metric FA -get_image True -precise True
+python Extraccion_metricas_v2.py -folder /datos/pacientes -segmentacion SWM DWM -difusion_metric FA -get_image True -precise True
 ```
 
 ## Detalles técnicos
 
 ### Diferencias en el metodo de remuestreo (precise)
+
+
