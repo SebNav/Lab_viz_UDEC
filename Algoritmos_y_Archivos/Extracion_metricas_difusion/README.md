@@ -1,6 +1,6 @@
 # Pipeline de obtención de valores promedios de metricas de difusion (FA,ADC,RD,AD) (SWM/DWM)
 
-Pipeline automatico para la obtencion de los valores de promedio para las metricas de difusión FA, ADC, RD, AD para los fascículos de fibras largas(DWM) y/o fibras cortas(SWM). El algoritmo como salida un archivo excel (para cada metrica un excel distinto), donde se tiene los sujetos (de la carpeta que se pase para el procesamiento) con los valores promedio para cada fascículos.
+Pipeline automatico para la obtencion de los valores de promedio para las metricas de difusión FA, ADC, RD, AD para los fascículos de fibras largas (DWM) y/o fibras cortas (SWM). El algoritmo tiene como salida un archivo excel (para cada tipo de metricas distinta se crea un excel aparte), donde se tiene los sujetos (de la carpeta que se pase para el procesamiento) con los valores promedio para cada fascículos.
 
 ## Uso del programa
 
