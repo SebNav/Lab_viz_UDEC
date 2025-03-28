@@ -62,4 +62,13 @@ python Extraccion_metricas_v2.py -folder /datos/pacientes -segmentacion SWM DWM 
 
 ### Diferencias en el metodo de remuestreo (precise)
 
+Las siguientes imágenes muestran la diferencia en el tiempo de procesamiento al utilizar la opción precise en True (precise) o False (fast) para el procesamiento de los fascículos SWM y DWM en una carpeta con solo dos sujetos.
+
+En cuanto a la diferencia en los valores promedio de las métricas para los distintos fascículos, esta puede apreciarse en los archivos de Excel presentes en este mismo repositorio. Sin embargo, las diferencias suelen ser del orden de milésimas.
+
+###FAST
+![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Brain_striping.png)
+
+###Precise
+![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Brain_striping.png)
 
