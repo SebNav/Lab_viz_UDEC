@@ -37,7 +37,7 @@ Folder
 Ejecuta el script desde la terminal con:
 
 ```bash
-python nombre_del_script.py [OPCIONES]
+python3 Extraccion_metricas_v2.py [OPCIONES]
 ```
 
 ### Opciones disponibles:
@@ -45,33 +45,36 @@ python nombre_del_script.py [OPCIONES]
 #### Obligatorias:
 - `-folder RUTA`  
   Ruta a la carpeta con los datos de los sujetos a procesar (requerido)
-
-#### Opcionales:
-- `-h`, `--help`  
-  Muestra este mensaje de ayuda y sale
-
+  
 - `-segmentacion {SWM,DWM} [SWM,DWM...]`  
-  Tipo de segmentación de fascículos:  
+  Se especifica de cual fascículos se quiere obtener las metricas de difusión:  
   - `SWM` para fibras cortas (Superficial White Matter)  
   - `DWM` para fibras largas (Deep White Matter)  
   Puedes especificar uno o ambos tipos
 
-- `-difusion_metric {FA,ADC,MD,RD}`  
+#### Opcionales:
+
+- `-difusion_metric {FA,ADC,MD,RD}` #Este paso esta en proceso 
   Métrica de difusión para los cálculos:  
   - `FA`: Anisotropía Fraccional  
   - `ADC`: Coeficiente de Difusión Aparente  
   - `MD`: Difusividad Media  
   - `RD`: Difusividad Radial  
 
-- `-get_image {True,False}`  
-  Si las imágenes de métricas no existen:  
-  - `True`: Calcula usando Mrtrix3  
-  - `False`: Usa las existentes (default)  
+- `-get_image {True,False,y,n,yes,no}{Default:True}`  
+    Calculas las imagenes (FA,ADC,RD,AD) del cual se extraeran los valores:  
+  - `True`: Calcula estas imagenes utilizando Mrtrix3  
+  - `False`: No se calcula, estas imagenes ya existen
 
 - `-precise {True,False}`  
   Método de remuestreo de fibras:  
-  - `False` (default): Método rápido (mismo número de puntos para todas las fibras)  
-  - `True`: Método preciso (puntos proporcionales a la longitud de cada fibra)  
+  
+  - `False` (default): Todas las fibras usan el mismo número de puntos (basado en la fibra más larga / (tamaño_vóxel*0.75)).
+      * Ventaja: Rápido.
+      * Limitación: Fibras cortas pueden tener puntos redundantes en el mismo vóxel, lo que influye muy levemente en el valor promedio del fascículo.
+  - `True`: Cada fibra se remuestrea con puntos proporcionales a su longitud.
+      * Ventaja: Precisión mejorada.
+      * Limitación: MAYOR tiempo de cálculo."""
 
 ### Ejemplos de uso:
 
@@ -87,24 +90,4 @@ python nombre_del_script.py -folder /datos/pacientes -segmentacion SWM DWM -difu
 
 ## Detalles técnicos
 
-### Métricas disponibles:
-- **FA (Anisotropía Fraccional)**: Evalúa la integridad de la materia blanca
-- **ADC/MD/RD**: Proporcionan información complementaria sobre la microestructura
-
-### Métodos de segmentación:
-- **SWM**: Optimizado para fibras cortas (<4cm)
-- **DWM**: Especializado en tractos largos profundos
-
-### Rendimiento:
-- El modo `-precise False` es más rápido pero menos preciso
-- El modo `-precise True` ofrece mayor precisión a costa de tiempo de cálculo
-```
-
-Este formato:
-1. Es claro y fácil de leer directamente en GitHub
-2. Usa formato Markdown estándar
-3. Incluye ejemplos prácticos de uso
-4. Explica las opciones técnicas de manera accesible
-5. Destaca las opciones obligatorias vs opcionales
-
-Puedes copiarlo directamente a tu README.md y personalizar los nombres de script o añadir cualquier detalle específico de tu implementación.
+### Diferencias en el metodo de remuestreo (precise)
