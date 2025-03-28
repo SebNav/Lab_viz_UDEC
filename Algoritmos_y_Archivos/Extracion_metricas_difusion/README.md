@@ -4,7 +4,7 @@ Pipeline automatico para la obtencion de los valores de promedio para las metric
 
 ## Uso del programa
 
-Ejecuta el script desde la terminal con:
+Descarga el scrip "Extraccion_metricas_v2.py" y  ejecuta el script desde la terminal con:
 
 ```bash
 python3 Extraccion_metricas_v2.py [OPCIONES]
