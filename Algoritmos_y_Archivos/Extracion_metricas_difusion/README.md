@@ -30,11 +30,7 @@ Folder
 ```
 
 
-## Modo de uso
 
-El algoritmo está escrito en Python este presenta diversos
-
-# Pipeline de Procesamiento de Datos de Difusión
 
 ## Uso del programa
 
@@ -42,71 +38,73 @@ Ejecuta el script desde la terminal con:
 
 ```bash
 python nombre_del_script.py [OPCIONES]
-Opciones disponibles:
-Obligatorias:
--folder RUTA
-Ruta a la carpeta con los datos de los sujetos a procesar (requerido)
+```
 
-Opcionales:
--h, --help
-Muestra este mensaje de ayuda y sale
+### Opciones disponibles:
 
--segmentacion {SWM,DWM} [SWM,DWM...]
-Tipo de segmentación de fascículos:
+#### Obligatorias:
+- `-folder RUTA`  
+  Ruta a la carpeta con los datos de los sujetos a procesar (requerido)
 
-SWM para fibras cortas (Superficial White Matter)
+#### Opcionales:
+- `-h`, `--help`  
+  Muestra este mensaje de ayuda y sale
 
-DWM para fibras largas (Deep White Matter)
-Puedes especificar uno o ambos tipos
+- `-segmentacion {SWM,DWM} [SWM,DWM...]`  
+  Tipo de segmentación de fascículos:  
+  - `SWM` para fibras cortas (Superficial White Matter)  
+  - `DWM` para fibras largas (Deep White Matter)  
+  Puedes especificar uno o ambos tipos
 
--difusion_metric {FA,ADC,MD,RD}
-Métrica de difusión para los cálculos:
+- `-difusion_metric {FA,ADC,MD,RD}`  
+  Métrica de difusión para los cálculos:  
+  - `FA`: Anisotropía Fraccional  
+  - `ADC`: Coeficiente de Difusión Aparente  
+  - `MD`: Difusividad Media  
+  - `RD`: Difusividad Radial  
 
-FA: Anisotropía Fraccional
+- `-get_image {True,False}`  
+  Si las imágenes de métricas no existen:  
+  - `True`: Calcula usando Mrtrix3  
+  - `False`: Usa las existentes (default)  
 
-ADC: Coeficiente de Difusión Aparente
+- `-precise {True,False}`  
+  Método de remuestreo de fibras:  
+  - `False` (default): Método rápido (mismo número de puntos para todas las fibras)  
+  - `True`: Método preciso (puntos proporcionales a la longitud de cada fibra)  
 
-MD: Difusividad Media
+### Ejemplos de uso:
 
-RD: Difusividad Radial
-
--get_image {True,False}
-Si las imágenes de métricas no existen:
-
-True: Calcula usando Mrtrix3
-
-False: Usa las existentes (default)
-
--precise {True,False}
-Método de remuestreo de fibras:
-
-False (default): Método rápido (mismo número de puntos para todas las fibras)
-
-True: Método preciso (puntos proporcionales a la longitud de cada fibra)
-
-Ejemplos de uso:
-Procesamiento básico:
-
-bash
-Copy
+1. Procesamiento básico:
+```bash
 python nombre_del_script.py -folder /datos/pacientes -segmentacion SWM
-Procesamiento completo con todas las opciones:
+```
 
-bash
-Copy
+2. Procesamiento completo con todas las opciones:
+```bash
 python nombre_del_script.py -folder /datos/pacientes -segmentacion SWM DWM -difusion_metric FA -get_image True -precise True
-Detalles técnicos
-Métricas disponibles:
-FA (Anisotropía Fraccional): Evalúa la integridad de la materia blanca
+```
 
-ADC/MD/RD: Proporcionan información complementaria sobre la microestructura
+## Detalles técnicos
 
-Métodos de segmentación:
-SWM: Optimizado para fibras cortas (<4cm)
+### Métricas disponibles:
+- **FA (Anisotropía Fraccional)**: Evalúa la integridad de la materia blanca
+- **ADC/MD/RD**: Proporcionan información complementaria sobre la microestructura
 
-DWM: Especializado en tractos largos profundos
+### Métodos de segmentación:
+- **SWM**: Optimizado para fibras cortas (<4cm)
+- **DWM**: Especializado en tractos largos profundos
 
-Rendimiento:
-El modo -precise False es más rápido pero menos preciso
+### Rendimiento:
+- El modo `-precise False` es más rápido pero menos preciso
+- El modo `-precise True` ofrece mayor precisión a costa de tiempo de cálculo
+```
 
-El modo -precise True ofrece mayor precisión a costa de tiempo de cálculo´´´
+Este formato:
+1. Es claro y fácil de leer directamente en GitHub
+2. Usa formato Markdown estándar
+3. Incluye ejemplos prácticos de uso
+4. Explica las opciones técnicas de manera accesible
+5. Destaca las opciones obligatorias vs opcionales
+
+Puedes copiarlo directamente a tu README.md y personalizar los nombres de script o añadir cualquier detalle específico de tu implementación.
