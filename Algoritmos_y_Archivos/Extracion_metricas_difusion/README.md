@@ -66,9 +66,9 @@ Las siguientes imágenes muestran la diferencia en el tiempo de procesamiento al
 
 En cuanto a la diferencia en los valores promedio de las métricas para los distintos fascículos, esta puede apreciarse en los archivos de Excel presentes en este mismo repositorio. Sin embargo, las diferencias suelen ser del orden de milésimas.
 
-###FAST
-![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Brain_striping.png)
+### FAST
+![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Extracion_metricas_difusion/fast.png)
 
-###Precise
-![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Registro(Transformaciones)/Brain_striping.png)
+### Precise
+![Alt text](https://github.com/SebNav/Lab_viz_UDEC/blob/main/Algoritmos_y_Archivos/Extracion_metricas_difusion/precise.png)
 
