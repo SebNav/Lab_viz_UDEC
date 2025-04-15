@@ -97,3 +97,33 @@ Si la imagen de difusión utilizada no fue corregida por distorsiones EPI (EPI d
 
 
 ### Transformación de Tractogramas
+
+Para transformar tractografías desde el espacio de difusión al espacio de referencia (usualmente MNI152), se requiere contar con una imagen *template* en el espacio de referencia (en este ejemplo `MNI152_T1_3mm_brain.nii.gz`), una imagen de buena calidad en el espacio de difusión (comúnmente una T1w transformada previamente al espacio de difusión), la tractografía que se desea transformar, y un *warp* (transformación no lineal) que permita el paso del espacio de difusión al espacio de referencia.
+
+Para este procedimiento, utilizaremos de manera combinada herramientas de FSL y MRtrix3 para llevar a cabo el proceso de forma correcta y eficiente.
+
+1. **Cálculo de la transformación lineal:**  
+   En primer lugar, se necesita calcular una transformación afín entre la imagen T1w en el espacio de difusión y la imagen *template* en el espacio de referencia. Esta transformación se utilizará como insumo para el cálculo posterior del *warp*.
+
+```console
+   flirt -ref ../../MNI152_T1_3mm_brain.nii.gz -in T1w_acpc_dc_restore_brain_diff_space.nii.gz -omat T12MNI_affine.mat
+```
+
+**Nota: Se utiliza una imagen de 3mm de resolucion como referencia ya que si fuera una imagen de mayor resolucion el calculo de la trasnformacion tardaria demasiado tiempo**
+
+
+2.- **Calculo de warp:**:
+
+```console
+fnirt --ref=../../MNI152_T1_3mm_brain.nii.gz --in=T1w_acpc_dc_restore_brain_diff_space.nii.gz --aff=T12MNI_affine.mat --cout=warps_T12MNI
+```
+
+
+3.- **Calculo de warp invetido:** Debido a cómo están estructurados los datos en las tractografías, es necesario aplicar un warp invertido para llevarlas correctamente al espacio de referencia.
+
+```console
+invwarp --ref=T1w_acpc_dc_restore_brain_diff_space.nii.gz --warp=warps_T12MNI --out=warps_MNI2T1
+warpinit ../../MNI152_T1_3mm_brain.nii.gz inv_identity_warp_no.nii.gz -force
+applywarp --ref=T1w_acpc_dc_restore_brain_diff_space.nii.gz --in=inv_identity_warp_no.nii.gz --warp=warps_MNI2T1.nii.gz --out=mrtrix_warp_MNI2dwi.nii.gz
+tcktransform tractography_prob_sift_3M_21p.tck mrtrix_warp_MNI2dwi.nii.gz tractography_prob_sift_3M_21p_MNI.tck -force 
+```
