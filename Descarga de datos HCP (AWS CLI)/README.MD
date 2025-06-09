@@ -23,7 +23,31 @@ sudo apt install unzip curl -y
 
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
-sudo ./aws/install```bash
+sudo ./aws/install
+```
 
 
 ### 2. Verificar la instalación
+
+```bash
+aws --version
+
+```
+
+Deberías aparecer una salida similar a:
+
+
+```bash
+aws-cli/2.x.x Python/x.x.x Linux/x86_64
+
+```
+
+
+## 🔐 Configuración de credenciales
+
+
+
+
+
+
+
