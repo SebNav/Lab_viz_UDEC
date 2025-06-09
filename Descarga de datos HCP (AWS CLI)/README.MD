@@ -49,6 +49,31 @@ Una vez que tengas tus claves de acceso S3 proporcionadas por HCP (puedes solici
 aws configure
 ```
 
+se te pedira ingresar:
+
+- AWS Access Key ID: tu clave pública (proporcionada por HCP)
+- AWS Secret Access Key: tu clave secreta (proporcionada por HCP)
+- Region: puedes escribir us-east-1 o dejar en blanco
+- Output format: puedes dejar en blanco o usar json
+
+
+## 📦 Descarga de datos HCP
+
+Los datos del HCP están disponibles públicamente en el bucket s3://hcp-openaccess. Para descargar datos se debe colocar "aws s3" seguido de 'cp' o 'sync' dependiendo si se quiere descargar un archivo especifico o una carpeta completa, despues de esto se debe escribir la direccion del archivo o carpeta a descargar y por ultimo el lugar donde se guardara.
+
+- Descargar un archivo específico
+
+```bash
+aws s3 cp s3://hcp-openaccess/HCP_1200/100307/T1w/T1w_acpc_dc_restore.nii.gz /home/prueba/T1w_acpc_dc_restore.nii.gz
+
+```
+
+- Descarga de un carpeta en especifico
+
+```bash
+aws s3 cp s3://hcp-openaccess/HCP_1200/100307/T1w/ /home/prueba/T1w/
+
+```
 
 
 
