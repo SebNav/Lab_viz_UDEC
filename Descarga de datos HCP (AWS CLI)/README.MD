@@ -6,10 +6,9 @@ Este repositorio proporciona una guía paso a paso para instalar y configurar la
 
 ## 🔧 Requisitos
 
-- Ubuntu 22.04
-- Conexión a internet
 - Cuenta en [ConnectomeDB](https://db.humanconnectome.org/)
-- Credenciales de acceso S3 proporcionadas por HCP (AWS Access Key y Secret)
+- **Credenciales de acceso S3 proporcionadas por HCP**  
+  > 📌 Estas credenciales se obtienen al registrarte en el portal [ConnectomeDB](https://db.humanconnectome.org/), aceptar el acuerdo de uso de datos, y solicitar acceso a los datos restringidos. Una vez aprobado, recibirás un `Access Key ID` y un `Secret Access Key`.
 
 ---
 
@@ -31,7 +30,6 @@ sudo ./aws/install
 
 ```bash
 aws --version
-
 ```
 
 Deberías aparecer una salida similar a:
@@ -45,7 +43,11 @@ aws-cli/2.x.x Python/x.x.x Linux/x86_64
 
 ## 🔐 Configuración de credenciales
 
+Una vez que tengas tus claves de acceso S3 proporcionadas por HCP (puedes solicitarlas registrándote en [ConnectomeDB](https://db.humanconnectome.org/), aceptando el acuerdo de uso de datos y solicitando acceso a los datos restringidos), configura el acceso con:
 
+```bash
+aws configure
+```
 
 
 
