@@ -7,7 +7,7 @@
 > Si bien MRtrix3 puede instalarse en computadoras con Windows o Mac, en estos sistemas operativos diversas funciones del software no funcionan correctamente o son muy difíciles de hacer funcionar. Se recomienda utilizar Ubuntu 22.04 para el uso de MRtrix3.
 
 > [!WARNING]  
-> Algunos de los scripts de MRtrix3 dependen de funciones de otros software, por lo que se recomienda instalar FSL y ANTS para el correcto funcionamiento de MRtrix3. Además, se recomienda utilizar un computador con Python 3.11.8 (o una versión inferior) debido a un error entre las últimas versiones de MRtrix3 y Python 3.12.
+> Algunos de los scripts de MRtrix3 dependen de funciones de otros software, por lo que se recomienda instalar FSL y ANTS para el correcto funcionamiento de MRtrix3. Además, se recomienda utilizar un computador con Python 3.11.8 (o una versión inferior) debido a un error entre las últimas versiones de MRtrix3 y Python 3.12. A la fecha 10/06/2025 sigue habiando problemas con python 3.12.X y Mrtirx3 al usar stripts de fsl como '5ttgen fsl'.
 
 MRtrix3 es un software que permite procesar imágenes de difusión para realizar tractografía, analizar la materia blanca, medir anisotropía, registrar imágenes y crear mapas de conectividad cerebral.
 
