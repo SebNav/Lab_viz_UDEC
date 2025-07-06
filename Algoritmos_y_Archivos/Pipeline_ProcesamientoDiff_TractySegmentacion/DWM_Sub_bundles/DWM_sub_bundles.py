@@ -178,7 +178,7 @@ def main():
     
     # Verificar si se desea realizar segmentación de fascículos
 
-    assert os.path.exists("main_index") and os.path.exists("atlas_faisceaux_UDD") and os.path.exists("atlas_faisceaux_udd.txt"), \
+    assert os.path.exists("main_index") and os.path.exists("atlas_faisceaux_UDD/") and os.path.exists("atlas_faisceaux_UDD.txt"), \
                 "Archivos necesarios para segmentación de fibras largas no encontrados."
 
     # Procesar cada sujeto
@@ -195,14 +195,14 @@ def main():
 
         print("Calculo de Fascículos de fibras largas")
         os.makedirs("DWM", exist_ok=True)
-        os.makedirs("DWM/results_folder_DWI", exist_ok=True)
+        os.makedirs("DWM/results_folder_sub_bundles_DWI", exist_ok=True)
         os.chdir("..")
         os.chdir("..")
-        os.system("./main_index 21 "+ suj+"tractography_prob_sift_3M_21p_MNI.bundles subject atlas_faisceaux_UDD/ atlas_faisceaux_udd.txt "+suj+"DWM/results_folder_sub_bundles "+suj+"DWM/indices_folder_sub_bundles")
-        DWM_fasc_index = os.listdir(suj + "DWM/results_folder_sub_bundles")
+        os.system("./main_index 21 "+ suj+"tractography_prob_sift_3M_21p_MNI.bundles subject atlas_faisceaux_UDD/ atlas_faisceaux_UDD.txt "+suj+"DWM/results_folder_sub_bundles "+suj+"DWM/indices_folder_sub_bundles")
+        DWM_fasc_index = os.listdir(suj + "DWM/indices_folder_sub_bundles")
         for fasc_ind in DWM_fasc_index:
             nombre_fasc = fasc_ind.rstrip(".txt")
-            indices = open(suj + "DWM/indices_folder_sub_bundle/" + fasc_ind).readlines()
+            indices = open(suj + "DWM/indices_folder_sub_bundles/" + fasc_ind).readlines()
             indices = [int(ind.rstrip("\n")[:-7]) for ind in indices]
             bundle = tractography[indices]
             centroids_tractogram_file = Tractogram(streamlines=bundle)
