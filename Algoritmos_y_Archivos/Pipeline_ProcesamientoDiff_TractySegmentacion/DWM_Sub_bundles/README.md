@@ -1,6 +1,6 @@
 # DWM Atlas Sub-Bundles
 
-Este repositorio permite subdividir los fascículos del atlas DWM en sub-bundles.
+Este Pipeline permite subdividir los fascículos del atlas DWM en sub-bundles.
 
 ## Instrucciones
 
