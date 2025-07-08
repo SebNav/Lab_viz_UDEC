@@ -134,7 +134,7 @@ def folder_fchange(bundle_path,bundle_output_path,format_change,header="MNI152_T
         Parámetros  
         ----------  
         bundle_path : str  
-            Ruta al archivo .tck.  
+            Ruta al archivo .  
             Ejemplo: "Pepito/tractografia/Tractografía.tck"  
         
         bundle_output_path : str  
