@@ -124,20 +124,20 @@ def main():
         print("Se calculan los valores por sujeto y por fasciculo- FA, MD, RD y ADC de los sujetos")
         
         for segmentation in args.segmentacion:
-            if 'SWM' in segmentation:
+            if 'SWM' == segmentation:
                 Fasc_cortos = open("AtlasRo_estables.txt","r").readlines()
                 Fasc_cortos =  [f.split("\t")[0].rstrip("\n") for f in Fasc_cortos]
                 bundles = Fasc_cortos
                 b_path = "SWM/results_folder_DWI/"                 
                 ant = ""
-            if 'DWM' in segmentation:
+            if 'DWM' == segmentation:
                 Fasc_largos = open("atlas_faisceaux.txt","r").readlines()
                 Fasc_largos =  [f.split("\t")[0][6:-4].rstrip("\n") for f in Fasc_largos]
                 bundles = Fasc_largos
                 b_path = "SWM/results_folder_DWI/"
                 ant = "atlas_"
                 
-            if 'DWM' in segmentation:
+            if 'DWM' == segmentation:
                 Fasc_largos_sub = open("atlas__faisceaux_UDD.txt","r").readlines()
                 Fasc_largos_sub =  [f.split("\t")[0].rstrip("\n") for f in Fasc_largos]
                 bundles = Fasc_largos_sub
