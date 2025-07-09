@@ -98,7 +98,13 @@ def main():
    	  precise_str = "fast"
   
     
+    Fasc_largos = open("atlas_faisceaux.txt","r").readlines()
+    Fasc_cortos = open("AtlasRo_estables.txt","r").readlines()
+    Fasc_largos_sub = open("atlas__faisceaux_UDD.txt","r").readlines()
     
+    Fasc_largos =  [f.split("\t")[0][6:-4].rstrip("\n") for f in Fasc_largos]
+    Fasc_cortos =  [f.split("\t")[0].rstrip("\n") for f in Fasc_cortos]
+    Fasc_largos_sub =  [f.split("\t")[0].rstrip("\n") for f in Fasc_largos_sub]
 
     if args.get_image:
         print("Se calculan las imagenes FA, MD, RD y ADC de los sujetos")
@@ -118,24 +124,19 @@ def main():
         
         for segmentation in args.segmentacion:
             if 'SWM' == segmentation:
-                fasc = open("AtlasRo_estables.txt","r").readlines()
-                fasc =  [f.split("\t")[0].rstrip("\n") for f in fasc]
-
+                bundles = Fasc_cortos
                 b_path = "SWM/results_folder_DWI/"                 
                 ant = ""
             if 'DWM' == segmentation:
-                fasc = open("atlas_faisceaux.txt","r").readlines()
-                fasc =  [f.split("\t")[0][6:-4].rstrip("\n") for f in fasc]
+                bundles = Fasc_largos
                 b_path = "SWM/results_folder_DWI/"
                 ant = "atlas_"
                 
             if 'DWM' == segmentation:
-                fasc = open("atlas__faisceaux_UDD.txt","r").readlines()
-                fasc =  [f.split("\t")[0].rstrip("\n") for f in fasc]
+                bundles = Fasc_largos_sub
                 b_path = "DWM_sub/results_folder_sub_bundles_DWI"   
                 ant = "atlas_"
-            bundles = fasc
-            
+
             all_data_FA  =  []
             all_data_RD  =  []
             all_data_ADC = []
