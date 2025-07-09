@@ -208,7 +208,7 @@ def main():
             centroids_tractogram_file = Tractogram(streamlines=bundle)
             centroids_tractogram_file.affine_to_rasmm = np.eye(4)
             centroids_tck = TF.TckFile(centroids_tractogram_file, header={'timestamp': 0})
-            centroids_tck.save(suj + "DWM/results_folder_sub_bundles_DWI/" + nombre_fasc[:-4] + ".tck")
+            centroids_tck.save(suj + "DWM/results_folder_sub_bundles_DWI/" + nombre_fasc[:] + ".tck")
         os.chdir(suj)
 
         os.chdir("..")
