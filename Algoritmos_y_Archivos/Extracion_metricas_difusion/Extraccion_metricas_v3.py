@@ -100,11 +100,12 @@ def main():
     
     Fasc_largos = open("atlas_faisceaux.txt","r").readlines()
     Fasc_cortos = open("AtlasRo_estables.txt","r").readlines()
-    Fasc_largos_sub = open("atlas__faisceaux_UDD.txt","r").readlines()
+    Fasc_largos_sub = open("atlas_faisceaux_UDD.txt","r").readlines()
     
     Fasc_largos =  [f.split("\t")[0][6:-4].rstrip("\n") for f in Fasc_largos]
     Fasc_cortos =  [f.split("\t")[0].rstrip("\n") for f in Fasc_cortos]
     Fasc_largos_sub =  [f.split("\t")[0].rstrip("\n") for f in Fasc_largos_sub]
+    print()
 
     if args.get_image:
         print("Se calculan las imagenes FA, MD, RD y ADC de los sujetos")
@@ -127,15 +128,18 @@ def main():
                 bundles = Fasc_cortos
                 b_path = "SWM/results_folder_DWI/"                 
                 ant = ""
+                save = 'SWM'
             if 'DWM' == segmentation:
                 bundles = Fasc_largos
-                b_path = "SWM/results_folder_DWI/"
+                b_path = "DWM/results_folder_DWI/"
                 ant = "atlas_"
+                save = 'DWM'
                 
-            if 'DWM' == segmentation:
+            if 'DWM_sub' == segmentation:
                 bundles = Fasc_largos_sub
-                b_path = "DWM_sub/results_folder_sub_bundles_DWI"   
-                ant = "atlas_"
+                b_path = "DWM/results_folder_sub_bundles_DWI/"
+                save = 'DWM_sub'   
+                ant = ""
 
             all_data_FA  =  []
             all_data_RD  =  []
@@ -194,6 +198,7 @@ def main():
                     
                     bun = ant+bun
                     bun_path = suj+b_path
+                    print(bun_path+bun)
                     
                     if os.path.exists(bun_path+bun+".tck"):
                 
@@ -230,7 +235,7 @@ def main():
                             data_RD.append(np.mean(bundle_values_RD))
                             data_ADC.append(np.mean(bundle_values_ADC))
                             data_AD.append(np.mean(bundle_values_AD))
-                            data_len.append(len(bun))
+                            data_len.append(len(bundle))
                         
                         
                         
@@ -247,7 +252,7 @@ def main():
                             data_RD.append(np.mean(RD[streamlines_voxel[:,:,0],streamlines_voxel[:,:,1],streamlines_voxel[:,:,2]]))
                             data_ADC.append(np.mean(ADC[streamlines_voxel[:,:,0],streamlines_voxel[:,:,1],streamlines_voxel[:,:,2]]))
                             data_AD.append(np.mean(AD[streamlines_voxel[:,:,0],streamlines_voxel[:,:,1],streamlines_voxel[:,:,2]]))
-                            data_len.append(len(bun))
+                            data_len.append(len(bundle))
 
                     else:
                         print(bun,suj,"no existe")
@@ -266,19 +271,19 @@ def main():
             index = [suj[10:-1] for suj in Sujetos]
 
             df_FA = pd.DataFrame(all_data_FA,columns=bundles[:],index = index[:])
-            df_FA.to_excel("FA_bundles_"+b_path+"_Controles_"+precise_str+".xlsx")
+            df_FA.to_excel("FA_bundles_"+save+"_Controles_"+precise_str+".xlsx")
 
             df_RD = pd.DataFrame(all_data_RD,columns=bundles[:],index = index[:])
-            df_RD.to_excel("RD_bundles_"+b_path+"_Controles_"+precise_str+".xlsx")
+            df_RD.to_excel("RD_bundles_"+save+"_Controles_"+precise_str+".xlsx")
 
             df_ADC = pd.DataFrame(all_data_ADC,columns=bundles[:],index = index[:])
-            df_ADC.to_excel("ADC_bundles_"+b_path+"_Controles_"+precise_str+".xlsx")
+            df_ADC.to_excel("ADC_bundles_"+save+"_Controles_"+precise_str+".xlsx")
 
             df_AD = pd.DataFrame(all_data_AD,columns=bundles[:],index = index[:])
-            df_AD.to_excel("AD_bundles_"+b_path+"_Controles_"+precise_str+".xlsx")
+            df_AD.to_excel("AD_bundles_"+save+"_Controles_"+precise_str+".xlsx")
             
             df_len = pd.DataFrame(all_data_len,columns=bundles[:],index = index[:])
-            df_AD.to_excel("cantidad_fib_bundles_"+b_path+"_Controles_"+precise_str+".xlsx")
+            df_len.to_excel("cantidad_fib_bundles_"+save+"_Controles_"+precise_str+".xlsx")
                 
 if __name__ == "__main__":
     ini   = time()
