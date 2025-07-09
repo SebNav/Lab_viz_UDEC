@@ -37,7 +37,7 @@ def main():
     parser.add_argument(
         '-segmentacion', 
         nargs='+', 
-        choices=['SWM', 'DWM'], 
+        choices=['SWM', 'DWM','DWM_sub'], 
         default=None, 
         help="Tipo de segmentación de fascículos analizar: SWM (fibras cortas), DWM (fibras largas), o ambas."
     )
@@ -99,11 +99,13 @@ def main():
   
     
     #Se cargan los nombres de los fasciculos del cual se obtendra las metricas de difusión
-    Fasc_largos = open("atlas_faisceaux.txt","r").readlines()
-    Fasc_cortos = open("AtlasRo_estables.txt","r").readlines()
+    
+    
+    
+   
 
-    Fasc_largos =  [f.split("\t")[0][6:-4].rstrip("\n") for f in Fasc_largos]
-    Fasc_cortos =  [f.split("\t")[0].rstrip("\n") for f in Fasc_cortos]
+    
+    
 
     if args.get_image:
         print("Se calculan las imagenes FA, MD, RD y ADC de los sujetos")
@@ -123,12 +125,23 @@ def main():
         
         for segmentation in args.segmentacion:
             if 'SWM' in segmentation:
+                Fasc_cortos = open("AtlasRo_estables.txt","r").readlines()
+                Fasc_cortos =  [f.split("\t")[0].rstrip("\n") for f in Fasc_cortos]
                 bundles = Fasc_cortos
-                b_path = "SWM"                 
+                b_path = "SWM/results_folder_DWI/"                 
                 ant = ""
-            else:
+            if 'DWM' in segmentation:
+                Fasc_largos = open("atlas_faisceaux.txt","r").readlines()
+                Fasc_largos =  [f.split("\t")[0][6:-4].rstrip("\n") for f in Fasc_largos]
                 bundles = Fasc_largos
-                b_path = "DWM"   
+                b_path = "SWM/results_folder_DWI/"
+                ant = "atlas_"
+                
+            if 'DWM' in segmentation:
+                Fasc_largos_sub = open("atlas__faisceaux_UDD.txt","r").readlines()
+                Fasc_largos_sub =  [f.split("\t")[0].rstrip("\n") for f in Fasc_largos]
+                bundles = Fasc_largos_sub
+                b_path = "DWM_sub/results_folder_sub_bundles_DWI"   
                 ant = "atlas_"
     
             all_data_FA  =  []
@@ -187,12 +200,12 @@ def main():
                 for bun in tqdm(bundles[:]):
                     
                     bun = ant+bun
-                    bun_path = suj+b_path+"/"
+                    bun_path = suj+b_path
                     
-                    if os.path.exists(bun_path+"results_folder_DWI/"+bun+".tck"):
+                    if os.path.exists(bun_path+bun+".tck"):
                 
                         
-                        bundle = load_tractogram(bun_path+"results_folder_DWI/"+bun+".tck",T1w_header,bbox_valid_check=False).streamlines
+                        bundle = load_tractogram(bun_path+bun+".tck",T1w_header,bbox_valid_check=False).streamlines
                         
                         
                         largo = list(length(bundle)) 
