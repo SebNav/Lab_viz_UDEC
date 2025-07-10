@@ -215,4 +215,4 @@ def folder_fchange(bundle_path,bundle_output_path,format_change,header="MNI152_T
 #Ejemplos de uso
 #file_fchange("test_data/fibras_bundles/41.bundles","test_data/41.tck",format_change="bundles2tck")
 #file_fchange("test_data/fibras_tck/41.tck","test_data/41.bundles",format_change="tck2bundles")
-#folder_fchange("test_data/fibras_tck/", "test_data/fibas_bundles_prueba/", "tck2bundles",crear_carpeta=True)
+folder_fchange("../Pipeline_ProcesamientoDiff_TractySegmentacion/DWM_Sub_bundles/atlas_faisceaux_UDD/", "../Pipeline_ProcesamientoDiff_TractySegmentacion/DWM_Sub_bundles/atlas_faisceaux_UDD_tck/", "bundles2tck",crear_carpeta=True)
