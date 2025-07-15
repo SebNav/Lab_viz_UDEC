@@ -186,7 +186,7 @@ def main():
         print(f"Procesando sujeto: {suj}")
         os.chdir(suj)
 
-        print("--Inicio de proceso de segmentación de fascículos--")
+        print("--Inicio de proceso de segmentación de sub-fascículos DWM--")
         T1w = nb.as_closest_canonical(nb.load("T1w_acpc_dc_restore_brain_diff_space.nii.gz"))
         T1w_header = T1w.header
         fibs_tck = load_tractogram("tractography_prob_sift_3M_21p.tck", T1w_header, bbox_valid_check=False).streamlines
