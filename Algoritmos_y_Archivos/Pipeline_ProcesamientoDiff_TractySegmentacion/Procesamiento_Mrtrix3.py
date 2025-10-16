@@ -255,7 +255,7 @@ def main():
         # Calculo de tractografía
         if args.flag_tracto == "prob":
             print("--Inicio de calculo de tractografía Probabilistica--")
-            os.system("tckgen -algorithm iFOD2 wmfod.mif output.tck -act 5TT.nii.gz -backtrack -crop_at_gmwmi -seed_image dwi_mask.mif -maxlength 250 -minlength 40 -select 10M -cutoff 0.06")
+            os.system("tckgen -algorithm iFOD2 wmfod.mif output.tck -act 5TT.nii.gz -backtrack -crop_at_gmwmi -seed_image dwi_mask.mif -maxlength 250 -minlength 25 -select 10M -cutoff 0.06")
             os.system("tcksift output.tck wmfod.mif -act 5TT.nii.gz -term_number 3M output_sift.tck")
             os.system("tckresample output_sift.tck tractography_prob_sift_3M_21p.tck -num_points 21")
             os.system("rm output.tck")
