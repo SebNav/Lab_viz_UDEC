@@ -77,7 +77,26 @@ export FSLDIR PATH
 Si presentan otro tipo de problemas revisa el apartado de Troubleshooting oficial de FSL https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/troubleshooting
 
 
-## Ants
+## ANTs / ANTsX
+
+[ANTs/ANTsX](https://github.com/ANTsX/ANTs?tab=readme-ov-file) (Advanced Normalization Tools ecosystem) es un conjunto de herramientas de procesamiento de imágenes biomédicas diseñado para el registro (alineación), segmentación y análisis estadístico de imágenes cerebrales.
+
+Existen diversos métodos para instalar ANTs, incluyendo la compilación desde el código fuente (proceso que puede tardar más de una hora y requiere configurar múltiples dependencias de C++) o el uso de contenedores Docker/Singularity.
+
+Sin embargo, para el setup que utilizamos en el laboratorio, la forma más rápida y sencilla es mediante Conda.
+
+1.- Abre una terminal y ejecuta el siguiente comando:
+
+``` console
+conda install -c conda-forge ants
+```
+
+2.- Verificación de la instalación:
+
+``` console
+antsRegistration --version
+```
+
 
 ## Freesurfer
 
