@@ -71,7 +71,7 @@ aws s3 cp s3://hcp-openaccess/HCP_1200/100307/T1w/T1w_acpc_dc_restore.nii.gz /ho
 - Descarga de un carpeta en especifico
 
 ```bash
-aws s3 cp s3://hcp-openaccess/HCP_1200/100307/T1w/ /home/prueba/T1w/
+aws s3 sync s3://hcp-openaccess/HCP_1200/100307/T1w/ /home/prueba/T1w/
 
 ```
 
