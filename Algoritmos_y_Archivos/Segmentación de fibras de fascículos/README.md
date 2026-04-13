@@ -182,9 +182,9 @@ salida/
 
 | Tipo | Atlas | Fascículos |
 |------|-------|------------|
-| `DWM` | Atlas DWM ([Guevara et al., 2012](https://doi.org/10.1016/j.neuroimage.2012.02.078)) | Fascículos de materia blanca profunda / largo alcance |
-| `SWM` | Atlas SWM ([Godoy et al., 2021](https://doi.org/10.1016/j.neuroimage.2021.118673)) | Todos los fascículos de materia blanca superficial |
-| `SWM_e` | Atlas SWM (subconjunto estable) | Los 208 fascículos superficiales más reproducibles |
+| `DWM` | Atlas DWM ([Guevara et al., 2012](10.1016/j.neuroimage.2012.02.071)) | Fascículos de materia blanca profunda / largo alcance |
+| `SWM` | Atlas SWM ([Roman et al., 2022](https://doi.org/10.1016/j.neuroimage.2022.119550)) | Todos los fascículos de materia blanca superficial |
+| `SWM_e` | Atlas SWM (subconjunto estable) | Los 209 fascículos superficiales más reproducibles |
 
 ---
 
