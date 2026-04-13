@@ -20,7 +20,7 @@ En este repositorio se tienen los archivos necesarios para realizar la segmentac
 
 
 
-## Modo de Uso
+## Modo de Uso 
 
 > [!IMPORTANT]  
 > **Para que la segmentación funcione correctamente el tractograma a segmentar debe estar en el espacio de referencia MNI152 y las fibras remuestradas a 21 puntos equidistantes (en el formato .bundles).**
@@ -47,11 +47,146 @@ Aplicación:
 ./main_index 21 test_data/subject_x_21p_MNI.bundles subject atlas_faisceaux/  atlas_faisceaux.txt test_data/DWM/results_folder test_data/DWM/indices_folder
 
 ```
-
 ## Resultados
 
 - result_folder: Se almacenarán las fibras de los fascículos segmentados con el prefijo especificado (en este caso, "subject").
 - indices_folder: Se generará un archivo de texto por cada fascículo segmentado, con el mismo nombre del fascículo. Este archivo contiene los índices de las fibras segmentadas y permite rastrearlas entre tractogramas, facilitando el cambio de espacio de referencia o de formato de manera rápida.
 
 
-## Citation
+
+## Segmentacion de fascículos usando Docker Image
+
+## Requisitos
+
+- [Docker](https://docs.docker.com/get-docker/) instalado y funcionando en su equipo.
+- Archivo de tractografía en **espacio MNI152**, remuestreado a **21 puntos equidistantes**, en formato `.tck` o `.bundles`.
+
+---
+
+## 1. Descarga de la imagen
+
+Descargue el archivo de imagen Docker (`.tar`) desde el siguiente enlace:
+
+> **[Google Drive — Imagen Docker](https://drive.google.com/file/d/1F-_DdahEZs4TJQ3TMFwCSnHaWzPsjC3G/view?usp=sharing)**
+
+
+---
+
+## 2. Carga de la imagen
+
+Abra una terminal en la carpeta donde descargó el archivo `.tar` y ejecute:
+
+```bash
+docker load -i tract_segment.tar.gz
+```
+
+Verifique que la imagen se cargó correctamente:
+
+```bash
+docker images
+```
+
+Debería aparecer una entrada llamada **`tract_segment`** en la lista.
+
+---
+
+## 3. Ejecutar la segmentación
+
+La imagen requiere que sus datos sean **montados** en el contenedor en tiempo de ejecución mediante la opción `-v` — los archivos de tractografía no están incluidos dentro de la imagen.
+
+### Sintaxis general
+
+```bash
+docker run --rm \
+  -v /ruta/a/sus/datos:/data \
+  tract_segment \
+  -i /data/<archivo_tractografia> \
+  -o /data/<carpeta_salida> \
+  -s <tipo_segmentacion> \
+  [-o_f <formato_salida>]
+```
+
+| Argumento | Requerido | Descripción |
+|-----------|-----------|-------------|
+| `-i` / `--input` | Sí | Ruta al archivo de tractografía de entrada (`.tck` o `.bundles`) **dentro del contenedor** (es decir, bajo `/data/`) |
+| `-o` / `--output` | Sí | Ruta a la carpeta de salida **dentro del contenedor** donde se guardarán los resultados |
+| `-s` / `--segmentation` | Sí | Tipo de segmentación: `DWM`, `SWM` o `SWM_e` |
+| `-o_f` / `--output_format` | No | Formato de salida de los fascículos segmentados: `tck` o `bundles` (por defecto: `bundles`) |
+
+> **Nota:** Reemplace `/ruta/a/sus/datos` con la **ruta absoluta** en su máquina local donde se encuentra el archivo de tractografía. Los resultados se guardarán en esa misma carpeta.
+
+---
+
+### Ejemplos
+
+#### Segmentación de materia blanca profunda (DWM) — salida en `.bundles`
+
+```bash
+docker run --rm \
+  -v /home/usuario/mis_datos:/data \
+  tract_segment:latest \
+  -i /data/sujeto_21p_MNI.bundles \
+  -o /data/salida \
+  -s DWM
+```
+
+#### Segmentación de materia blanca superficial — todos los fascículos (SWM) — salida en `.tck`
+
+```bash
+docker run --rm \
+  -v /home/usuario/mis_datos:/data \
+  tract_segment:latest \
+  -i /data/sujeto_21p_MNI.tck \
+  -o /data/salida \
+  -s SWM \
+  -o_f tck
+```
+
+#### Segmentación de materia blanca superficial — solo fascículos estables (SWM_e) — salida en `.bundles`
+
+```bash
+docker run --rm \
+  -v /home/usuario/mis_datos:/data \
+  tract_segment:latest \
+  -i /data/sujeto_21p_MNI.tck \
+  -o /data/salida \
+  -s SWM_e
+```
+
+---
+
+## 4. Estructura de la salida
+
+Al finalizar la segmentación, la carpeta de salida contendrá:
+
+```
+salida/
+├── results_folder_<tipo_segmentacion>/    # Fascículos segmentados (.bundles o .tck)
+└── indices_folder_<tipo_segmentacion>/    # Un .txt por fascículo con los índices de fibras
+```
+
+Si se utilizó `-o_f tck`, la carpeta de resultados en `.bundles` se elimina automáticamente y es reemplazada por:
+
+```
+salida/
+├── results_folder_<tipo_segmentacion>_tck/   # Fascículos segmentados (.tck)
+└── indices_folder_<tipo_segmentacion>/        # Índices de fibras (.txt)
+```
+
+- **results_folder**: contiene un archivo por cada fascículo segmentado, nombrado según el fascículo del atlas.  
+- **indices_folder**: contiene un `.txt` por fascículo con los índices de las fibras coincidentes en el tractograma original, útil para rastrear fibras entre formatos o espacios de referencia.
+
+---
+
+## Tipos de segmentación
+
+| Tipo | Atlas | Fascículos |
+|------|-------|------------|
+| `DWM` | Atlas DWM ([Guevara et al., 2012](https://doi.org/10.1016/j.neuroimage.2012.02.078)) | Fascículos de materia blanca profunda / largo alcance |
+| `SWM` | Atlas SWM ([Godoy et al., 2021](https://doi.org/10.1016/j.neuroimage.2021.118673)) | Todos los fascículos de materia blanca superficial |
+| `SWM_e` | Atlas SWM (subconjunto estable) | Los 208 fascículos superficiales más reproducibles |
+
+---
+
+
+
