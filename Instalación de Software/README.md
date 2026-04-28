@@ -28,43 +28,46 @@ mrview
 ![Alt text](https://s3.us-east-2.amazonaws.com/brainder/2015/fsl-rpi/screenshot_debian_lxde_rpi2.png)
 
 > [!CAUTION]
-> Esta guia describe el proceso de instalación de FSL en Ubuntu, si se quiere instalar FSL en otro sistema operativo siga el proceso descrito en https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/linux.
+> Esta guía describe el proceso de instalación de FSL en Ubuntu. Para otros sistemas operativos, sigue las instrucciones oficiales en https://fsl.fmrib.ox.ac.uk/fsl/docs/install/linux.html.
 
-I) Descargar el instalador de Python **fslinstaller.py** (esta en este mismo repositorio).
+### Instalación
 
-II) Abrir una terminal y ejecutar el script usando Python:
-
-```console
-python ~/Downloads/fslinstaller.py
-```
-
-Si el comando anterior no funciona, pruebe con python
-3:
-```console
-python3 ~/Downloads/fslinstaller.py
-```
-
-III) Verificar la instalación:
-
-1.- Escribe ```echo $FSLDIR``` en la terminal. Esto debería imprimir en pantalla la ubicación donde FSL fue instalado, por ejemplo: ```/home/labimagenes/fsl```.
-
-2.- Abre el GUI de fsl escribiendo en el terminal ```fsl```.
-
-3.- Abre el GUI de FSLeyes, escribiendo en el terminal ```fsleyes -std &```, esto deberia abrir FSL con una template MNI152 T1.
-
-IV) Solución de problemas:
-Si alguno de los pasos de verificación no funcionó, es posible que sea necesario añadir la ubicación de FSL en el archivo .bashrc. Para ello, sigue estos pasos:
-
-1.- Abre una terminal y edita el archivo .bashrc escribiendo:
+I) Abre una terminal y ejecuta el siguiente comando. Este descargará e instalará FSL automáticamente (el proceso tarda entre 10 y 15 minutos según la velocidad de conexión):
 
 ```console
-open .bashrc
+curl -Ls https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/getfsl.sh | sh -s
 ```
 
-2.- Añade al final del archivo la siguiente línea, reemplazando con la ruta donde está instalado FSL (por ejemplo, **/home/nombre_de_usuario/fsl**):
+Al finalizar, deberías ver el mensaje: **`FSL successfully installed`**
 
-``` console
-FSLDIR=/home/nombre_de_usaario/fsl
+II) Cierra y vuelve a abrir la terminal para que los cambios tengan efecto.
+
+### Verificación
+
+1.- Escribe `echo $FSLDIR` en la terminal. Debería imprimir la ruta donde se instaló FSL, por ejemplo: `/home/labimagenes/fsl`.
+
+2.- Ejecuta `fslmaths` en la terminal. Debería mostrar el texto de ayuda del comando.
+
+3.- Abre el GUI de FSL escribiendo en la terminal `fsl &`.
+
+4.- Abre el visualizador FSLeyes escribiendo `fsleyes -std &`. Esto debería abrir FSLeyes con la plantilla MNI152 T1.
+
+### Solución de problemas
+
+Si la instalación no terminó con el mensaje de éxito, guarda todo el texto de la terminal y busca en tu carpeta de inicio un archivo de log llamado `fsl_installation_<fecha>.log`.
+
+Si alguno de los pasos de verificación falla, es posible que sea necesario añadir manualmente la ubicación de FSL al archivo `.bashrc`. Para ello:
+
+1.- Abre `.bashrc` con un editor de texto:
+
+```console
+nano ~/.bashrc
+```
+
+2.- Añade al final del archivo las siguientes líneas, reemplazando la ruta con la ubicación real de tu instalación (por ejemplo, `/home/nombre_de_usuario/fsl`):
+
+```console
+FSLDIR=/home/nombre_de_usuario/fsl
 . ${FSLDIR}/etc/fslconf/fsl.sh
 PATH=${FSLDIR}/bin:${PATH}
 export FSLDIR PATH
@@ -74,7 +77,7 @@ export FSLDIR PATH
 
 4.- Vuelve a intentar los pasos de verificación.
 
-Si presentan otro tipo de problemas revisa el apartado de Troubleshooting oficial de FSL https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/troubleshooting
+Para otros problemas, consulta la página oficial de Troubleshooting de FSL: https://fsl.fmrib.ox.ac.uk/fsl/docs/install/troubleshooting.html
 
 
 ## ANTs / ANTsX
@@ -114,13 +117,52 @@ Comience desde la página 27, en el apartado:
 
 ![Alt text](https://brainvisa.info/web/_static/images/control_window0.png)
 
->[!NOTE]
-> Este software funciona correctamente en Ubuntu y Windows. La instalación en Mac es más complicada, especialmente si se utiliza un computador con chip Mx.
+> [!NOTE]
+> Linux es el único sistema operativo soportado de forma nativa. Los usuarios de Windows deben habilitar WSL2, y los usuarios de Mac deben instalar una máquina virtual de Linux.
 
-El software se utiliza principalmente para la visualización de imágenes **.nii.gz** y datos de tractografía en formato **.bundles.** En la página oficial, existe un tutorial para la descarga e instalación de las nuevas versiones de Brainvisa/Anatomist. Sin embargo, estas versiones son difíciles de instalar o no funcionan con los archivos que utilizamos.
+El software se utiliza principalmente para la visualización de imágenes **.nii.gz** y datos de tractografía en formato **.bundles.**
 
-Para facilitar la instalación de Brainvisa/Anatomist, se recomienda descargar el ejecutable (.bin) y seguir el proceso de instalación de las versiones anteriores de Anatomist  (por ejemplo la version 4.6.1). Aunque estas versiones fueron desarrolladas para Ubuntu 16.04, funcionan correctamente en versiones más recientes.
+Anteriormente, las versiones nuevas de BrainVISA eran difíciles de instalar o no funcionaban correctamente, por lo que se recomendaba instalar versiones antiguas como la 4.6.1 (disponibles en https://brainvisa.info/web/download-4.6.html). Sin embargo, a partir de la versión 6.0, el proceso de instalación es sencillo y funciona correctamente en Ubuntu 22.04 sin necesidad de máquina virtual.
 
-https://brainvisa.info/web/download-4.6.html
+La versión actual se distribuye mediante el gestor de paquetes **Pixi** a través del canal `neuro-forge`. Para instalarla, sigue los siguientes pasos:
+
+### Instalación
+
+I) Instala el gestor de paquetes **Pixi**:
+
+```console
+curl -fsSL https://pixi.sh/install.sh | sh
+```
+
+Cierra y vuelve a abrir la terminal para que los cambios tengan efecto.
+
+II) Crea un directorio de trabajo e inicializa el entorno:
+
+```console
+mkdir ~/brainvisa
+cd ~/brainvisa
+pixi init -c https://brainvisa.info/neuro-forge -c conda-forge
+```
+
+III) Instala BrainVISA dentro del entorno:
+
+```console
+pixi add brainvisa
+```
+
+IV) Entra al entorno e inicia la aplicación:
+
+```console
+pixi shell
+brainvisa
+```
+
+V) (Recomendado) Ejecuta el setup inicial para actualizar la base de datos compartida de BrainVISA:
+
+```console
+pixi run brainvisa -b --setup
+```
+
+Para más información o versiones anteriores, visita la página oficial de descarga: https://brainvisa.info/web/download.html
 
 
