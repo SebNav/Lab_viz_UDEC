@@ -110,6 +110,17 @@ def entradas(wd):
     return dwi[0].removesuffix(".nii.gz"), inv, sdc, series
 
 
+def media_b0(nii):
+    """Comando que entrega por stdout el promedio de una b0 4D (serie PA) o la b0 tal cual si es 3D (Synb0)."""
+    if inv_ndim(nii) == 4:
+        return f"mrmath '{nii}' mean - -axis 3 -quiet"
+    return f"mrconvert '{nii}' - -quiet"
+
+
+def inv_ndim(nii):
+    return nb.load(nii).ndim if os.path.exists(nii) else 0
+
+
 def tck_dwi(wd):
     """Tractografia en espacio DWI: la original (v2) o la de 21 puntos (sujetos de versiones anteriores)."""
     t = "tractography_prob_sift_3M.tck"
@@ -145,8 +156,7 @@ def preparar(wd, force=False):
         ("qc_tmp/b0_pre.nii.gz", f"dwiextract '{ap}.nii.gz' -fslgrad '{ap}.bvec' '{ap}.bval' -bzero - -quiet | "
                              f"mrmath - mean - -axis 3 -quiet | "
                              f"mrtransform - -template {tpl} -interp linear qc_tmp/b0_pre.nii.gz -force"),
-        ("qc_tmp/b0_inv.nii.gz", f"mrconvert '{inv}' -axes 0,1,2,3 - -quiet | mrmath - mean - -axis 3 -quiet | "
-                             f"mrtransform - -template {tpl} -interp linear qc_tmp/b0_inv.nii.gz -force"),
+        ("qc_tmp/b0_inv.nii.gz", f"{media_b0(inv)} | mrtransform - -template {tpl} -interp linear qc_tmp/b0_inv.nii.gz -force"),
         ("qc_tmp/b0_post.nii.gz", f"{b0_corr} | mrmath - mean - -axis 3 -quiet | "
                               f"mrtransform - -template {tpl} -interp linear qc_tmp/b0_post.nii.gz -force"),
         ("qc_tmp/FA.nii.gz", f"mrtransform dti_FA.nii.gz -template {tpl} -interp linear qc_tmp/FA.nii.gz -force"),
@@ -505,7 +515,7 @@ def pagina_distorsion(pdf, I):
 
 def pagina_dwi_t1(pdf, I):
     fig = pagina(pdf, "3. Registro T1w → espacio DWI",
-                 "La transformación rígida se estima de DWI a T1w (epi_reg sobre el b0 corregido) y se aplica invertida para "
+                 f"La transformación rígida se estima de DWI a T1w ({I['reg_dwi_t1']} sobre el b0 corregido) y se aplica invertida para "
                  "llevar el T1w (y luego el 5TT) al espacio de difusión,\ndonde se hace la tractografía. "
                  "Fila 1: FA (calculada dentro de la máscara DWI) con el borde de sustancia blanca del T1w (cian). "
                  "Fila 2: T1w en espacio DWI con el contorno\nde la máscara DWI (amarillo) y FA = 0.3 (rojo). "
@@ -725,6 +735,8 @@ def generar_qc(wd, suj=None, force=False):
     for k in ("b0_pre", "b0_post", "mask", "tdi_diff", "T1_MNI", "tdi_MNI", "mask_MNI"):
         I[k], _ = cargar(q(f"{k}.nii.gz"))
     I["sdc"] = entradas(wd)[2]
+    # epi_reg (BBR) si se copio el T1w con craneo; si no, flirt 6 dof
+    I["reg_dwi_t1"] = "epi_reg, BBR" if os.path.exists(os.path.join(wd, "T1w_acpc_dc_restore.nii.gz")) else "flirt 6 dof"
     if I["sdc"] != "none" and os.path.exists(q("b0_inv.nii.gz")):
         I["b0_inv"], _ = cargar(q("b0_inv.nii.gz"))
     if os.path.exists(q("FA.nii.gz")):

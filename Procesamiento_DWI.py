@@ -641,7 +641,8 @@ def corregir_synb0(wd, datos, args, runtime, licencia, nt):
     for c in ["mrconvert eddy_out.nii.gz dwi_preproc.nii.gz -fslgrad eddy_out.eddy_rotated_bvecs bvals "
               "-export_grad_fsl dwi_preproc.bvec dwi_preproc.bval -force",
               # mismos archivos que deja dwifslpreproc -eddyqc_text, para el QC
-              "rm -rf eddy_qc && mkdir eddy_qc && for f in eddy_out.eddy_*; do cp \"$f\" \"eddy_qc/${f#eddy_out.}\"; done",
+              "rm -rf eddy_qc && mkdir eddy_qc && for f in eddy_out.eddy_*; do case \"$f\" in *.nii*) ;; "
+              "*) cp \"$f\" \"eddy_qc/${f#eddy_out.}\";; esac; done",
               "eddy_quad eddy_out -idx eddy_index.txt -par eddy_acqp.txt -m eddy_mask.nii.gz -b bvals -g bvecs "
               "-o eddy_qc/quad || echo 'AVISO: eddy_quad fallo'",
               "rm -f eddy_in.nii eddy_out.nii.gz eddy_out.eddy_outlier_free_data.nii.gz"]:
