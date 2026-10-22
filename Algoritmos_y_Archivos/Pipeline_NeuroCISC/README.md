@@ -1,4 +1,4 @@
-# Pipeline DWI: preprocesamiento, tractografía y segmentación de fascículos
+# Pipeline NeuroCISC: preprocesamiento DWI, tractografía y segmentación de fascículos
 
 Pipeline del Laboratorio de Visualización de la Universidad de Concepción, creado por Sebastián Navarrete (sebastian.navarrete@biomedica.udec.cl) y basado en MRtrix3, FSL y ANTs.
 
@@ -16,6 +16,9 @@ A partir de las imágenes de difusión y del T1w de cada sujeto, el pipeline:
 Funciona con dos tipos de adquisición, que solo difieren en la corrección de la distorsión por susceptibilidad: **investigativa** (multishell con una b0 adquirida con la fase invertida, AP/PA) y **clínica** (single-shell o multishell, solo AP o solo PA). El tipo se detecta automáticamente para cada sujeto.
 
 ## Cambios respecto a la versión anterior
+
+La versión anterior (v1) se conserva en [legacy/](legacy/).
+
 
 - La distorsión por susceptibilidad, que la versión 1 no corregía, ahora se corrige con topup: en adquisiciones de investigación se usa la b0 adquirida con la fase invertida, y en adquisiciones clínicas (solamente 1 b-values y menos dirreciones), que no la tienen, una b0 sintética sin distorsión generada a partir del T1w con [Synb0-DisCo](https://github.com/MASILab/Synb0-DISCO).
 - La máscara cerebral puede obtenerse con dos métodos: [HD-BET](https://github.com/MIC-DKFZ/HD-BET), más confiable y con mejor desempeño, que se usa si está instalado (**se recomienda encarecidamente instalarlo**), o `dwi2mask` de MRtrix en caso contrario.
@@ -37,14 +40,25 @@ Funciona con dos tipos de adquisición, que solo difieren en la corrección de l
 
 ## Instalación
 
-El pipeline usa los atlas, `main_index` y las plantillas MNI de la carpeta `Algoritmos_y_Archivos/Pipeline_ProcesamientoDiff_TractySegmentacion/` del repositorio [Lab_viz_UDEC](https://github.com/SebNav/Lab_viz_UDEC).
-
-- **Si ya tienes `Algoritmos_y_Archivos`:** descarga `Procesamiento_DWI.py` y `qc_dwi.py` y guárdalos juntos a los archivos de `Pipeline_ProcesamientoDiff_TractySegmentacion/` (donde está `Procesamiento_Mrtrix3.py`).
-- **Si no lo tienes:** clona el repositorio completo, que ya incluye esta carpeta:
+Los scripts buscan los atlas, las plantillas MNI y `main_index` en su misma carpeta, como en la versión 1. En el repositorio [Lab_viz_UDEC](https://github.com/SebNav/Lab_viz_UDEC) todo está en esta carpeta (`Algoritmos_y_Archivos/Pipeline_NeuroCISC/`), así que basta clonarlo:
 
 ```
 git clone https://github.com/SebNav/Lab_viz_UDEC.git
 ```
+
+También se puede trabajar en otra carpeta, con cualquier nombre, copiando a ella los scripts junto con estos archivos. Ahí mismo pueden estar las carpetas de sujetos:
+
+```
+mi_carpeta/
+├── Procesamiento_DWI.py, qc_dwi.py
+├── MNI152_T1_1mm_brain.nii.gz, main_index, tck2bundles.npy, read_write_bundle.py
+├── AtlasRo/, AtlasRo_estables.txt, AtlasRo_tck/
+├── atlas_faisceaux/, atlas_faisceaux.txt, atlas_faisceaux_tck/
+├── Sujetos_DWI/
+└── Sujetos_clinico/
+```
+
+Con `-check` el pipeline indica si falta algún archivo.
 
 La instalación de HD-BET y Synb0-DisCo se explica en [INSTALACION.md](INSTALACION.md).
 

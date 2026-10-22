@@ -7,8 +7,7 @@ Repositorio que almacena los algoritmos/pipelines más utilizados en el laborato
 
 ## Pipelines
 
-- [Pipeline_DWI](Algoritmos_y_Archivos/Pipeline_DWI): preprocesamiento de difusión, tractografía, segmentación de fascículos (DWM/SWM), métricas DTI por fascículo y QC.
-- [Pipeline_ProcesamientoDiff_TractySegmentacion](Algoritmos_y_Archivos/Pipeline_ProcesamientoDiff_TractySegmentacion): versión anterior (v1); contiene los atlas y plantillas que usan ambas versiones.
+- [Pipeline_NeuroCISC](Algoritmos_y_Archivos/Pipeline_NeuroCISC): preprocesamiento de difusión, tractografía, segmentación de fascículos (DWM/SWM), métricas DTI por fascículo y QC. La versión anterior está en su carpeta [legacy](Algoritmos_y_Archivos/Pipeline_NeuroCISC/legacy).
 
 
 

@@ -29,7 +29,6 @@ El PDF se guarda en <sujeto>/proc_dwi_v2/QC/QC_<sujeto>.pdf, junto a una copia d
 """
 
 import argparse
-import glob
 import json
 import os
 import shutil
@@ -45,10 +44,8 @@ import nibabel as nb
 import numpy as np
 import pandas as pd
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# Plantillas y atlas compartidos (misma ubicacion que en Procesamiento_DWI.py)
-RECURSOS = os.path.abspath(os.environ.get(
-    "NEUROCISC_RECURSOS", os.path.join(SCRIPT_DIR, "..", "Pipeline_ProcesamientoDiff_TractySegmentacion")))
+# Plantillas y atlas: en la carpeta de este script, igual que Procesamiento_DWI.py
+RECURSOS = os.path.dirname(os.path.abspath(__file__))
 MNI_1mm_brain = os.path.join(RECURSOS, "MNI152_T1_1mm_brain.nii.gz")
 # Atlas en MNI para la cobertura del FOV: (lista de fasciculos, carpeta de .tck, prefijo/sufijo a quitar)
 ATLAS_TCK = {"DWM": ("atlas_faisceaux.txt", "atlas_faisceaux_tck", "atlas_", "_MNI"),
@@ -138,10 +135,6 @@ def tck_dwi(wd):
     return t if os.path.exists(os.path.join(wd, t)) else "tractography_prob_sift_3M_21p.tck"
 
 
-def metodo_mni(wd):
-    return "ANTs SyN" if os.path.exists(os.path.join(wd, "ants_T12MNI_1Warp.nii.gz")) else "flirt afín + fnirt no lineal"
-
-
 def preparar(wd, force=False):
     """Lleva todas las imagenes a una grilla comun de 1 mm (T1w en espacio DWI) y a MNI 1 mm."""
     q = os.path.join(wd, "qc_tmp")
@@ -149,18 +142,10 @@ def preparar(wd, force=False):
     tpl = "qc_tmp/T1.nii.gz"
     # b0 sin corregir desde las series originales (-cleanup solo conserva estas y dwi_preproc_unbiased)
     ap, inv, _, _ = entradas(wd)
-    # T1w y mascara DWI deformados a MNI con ANTs SyN (o con fnirt en sujetos de versiones anteriores; FSL
-    # aplica el warp en la grilla del T1w, por eso la mascara se remuestrea antes a esa grilla)
-    t1d = "T1w_acpc_dc_restore_brain_diff_space.nii.gz"
-    if metodo_mni(wd) == "ANTs SyN":
-        ants = f"antsApplyTransforms -d 3 -r '{MNI_1mm_brain}' -t ants_T12MNI_1Warp.nii.gz -t ants_T12MNI_0GenericAffine.mat"
-        t1_mni = f"{ants} -i {t1d} -o qc_tmp/T1_MNI.nii.gz"
-        mask_mni = f"{ants} -i dwi_mask.nii.gz -n NearestNeighbor -o qc_tmp/mask_MNI.nii.gz"
-    else:
-        fsl = f"applywarp --ref='{MNI_1mm_brain}' --warp=warps_T12MNI.nii.gz"
-        t1_mni = f"{fsl} --in={t1d} --out=qc_tmp/T1_MNI.nii.gz"
-        mask_mni = (f"mrgrid dwi_mask.nii.gz regrid -template {t1d} -interp nearest qc_tmp/mask_t1.nii.gz -force "
-                    f"-quiet && {fsl} --in=qc_tmp/mask_t1.nii.gz --interp=nn --out=qc_tmp/mask_MNI.nii.gz")
+    # T1w y mascara DWI deformados a MNI con el registro ANTs SyN del pipeline
+    ants = f"antsApplyTransforms -d 3 -r '{MNI_1mm_brain}' -t ants_T12MNI_1Warp.nii.gz -t ants_T12MNI_0GenericAffine.mat"
+    t1_mni = f"{ants} -i T1w_acpc_dc_restore_brain_diff_space.nii.gz -o qc_tmp/T1_MNI.nii.gz"
+    mask_mni = f"{ants} -i dwi_mask.nii.gz -n NearestNeighbor -o qc_tmp/mask_MNI.nii.gz"
     b0_corr = "dwiextract dwi_preproc_unbiased.nii.gz -fslgrad dwi_preproc.bvec dwi_preproc.bval -bzero - -quiet"
     tareas = [
         ("qc_tmp/T1.nii.gz", "mrgrid T1w_acpc_dc_restore_brain_diff_space.nii.gz regrid -voxel 1 qc_tmp/T1.nii.gz -force"),
@@ -723,7 +708,7 @@ def pagina_5tt(pdf, I):
 
 
 def pagina_mni(pdf, I):
-    fig = pagina(pdf, f"5. Registro T1w → plantilla MNI152 ({I['metodo_mni']})",
+    fig = pagina(pdf, "5. Registro T1w → plantilla MNI152 (ANTs SyN)",
                  "Los atlas de fascículos (DWM y SWM) están definidos en el espacio MNI152. Para segmentar, la tractografía "
                  "se lleva a ese espacio con la deformación calculada\nentre el T1w del sujeto y la plantilla MNI. "
                  "Esta página verifica esa deformación.")
@@ -921,7 +906,6 @@ def generar_qc(wd, suj=None, force=False):
     I["5tt"], _ = cargar(q("5tt.nii.gz"))
     I["wm"] = I["5tt"][..., 2]
     I["MNI"], _ = cargar(MNI_1mm_brain)
-    I["metodo_mni"] = metodo_mni(wd)
     I["MNI_mask"] = (I["MNI"] > 0).astype(np.float32)
 
     # Metricas

@@ -2,41 +2,12 @@
 """
 Procesamiento_DWI.py
 
-Pipeline de difusion del Lab. de Visualizacion UdeC (version 2) para dos tipos de adquisicion, que solo
-difieren en la correccion de distorsion por susceptibilidad (-sdc, por defecto auto):
-    - Investigativo: multishell con b0 de fase inversa (AP/PA)  -> topup con el par de b0 + eddy.
-    - Clinico: single-shell o multishell, solo AP o solo PA      -> Synb0-DisCo (b0 sintetica sin
-      distorsion, Docker/Apptainer) + topup + eddy; sin Synb0, solo eddy.
-El resto del procesamiento es comun.
+Pipeline de difusion del Lab. de Visualizacion UdeC: preprocesamiento, tractografia, segmentacion de
+fasciculos (DWM/SWM), metricas DTI por fasciculo y QC. Sirve para datos investigativos (b0 de fase inversa:
+topup) y clinicos (solo AP o solo PA: Synb0-DisCo); el tipo se detecta por sujeto. Ver README.md.
 
-Entradas por sujeto (se detectan solas):
-    - Series convertidas con dcm2niix (.nii.gz/.json/.bval/.bvec) en cualquier subcarpeta: las que tienen
-      b > 0 son runs DWI y las de solo b0 con la fase opuesta, la b0 inversa para topup.
-    - O bien diff.nii.gz/.bval/.bvec (formato v1), con diff.json o acq.json opcionales para la fase.
-    - T1w procesado con el pipeline estructural HCP (T1w_acpc_dc_restore_brain.nii.gz y, opcional,
-      T1w_acpc_dc_restore.nii.gz con craneo para epi_reg y Synb0).
-
-Cambios respecto a v1:
-    - Todas las imagenes en .nii.gz (no .mif); los gradientes en bvec/bval (-fslgrad).
-    - Direccion de fase y TotalReadoutTime desde los .json (o acq.json / -pe_dir / -readout).
-    - Denoise por run y concatenacion con dwicat (reescalado de intensidad entre runs).
-    - mrdegibbs opcional (-degibbs).
-    - Correccion de susceptibilidad (topup o Synb0) y eddy --slm=linear --repol --data_is_shelled.
-    - dwibiascorrect ants; mascara DWI con HD-BET si esta instalado (si no, dwi2mask) (-mask).
-    - msmt_csd sobre los datos preprocesados (v1 usaba dwi.mif crudo) + mtnormalise: 3 tejidos con >= 2
-      shells b > 0, 2 tejidos (WM + CSF) con una sola.
-    - Registro b0 -> T1w con epi_reg (BBR) si existe el T1w con craneo; si no, flirt 6 dof + BBR con la
-      sustancia blanca de FAST sobre el T1w sin craneo.
-    - tckgen con semillas en la interfaz GM-WM (-seed_gmwmi; v1 sembraba en toda la mascara DWI). Se
-      conserva la tractografia SIFT original; los fasciculos en espacio DWI y sus metricas salen de ella.
-    - Metricas DTI opcionales (-dti) sobre la shell b mas baja.
-    - Registro T1w -> MNI152 1 mm con ANTs SyN (v1 usaba flirt + fnirt por defecto a 3 mm).
-    - Metricas por fasciculo (metricas/bundle_metrics_<DWM|SWM>.csv) con -dti y -segmentacion.
-    - PDF de QC por sujeto (qc_dwi.py), con la calidad de cada fasciculo (incluida la cobertura del FOV).
-    - Los comandos se detienen ante errores y cada paso se omite si su salida ya existe, por lo que el
-      pipeline se puede reanudar.
-    - -cleanup: al terminar un sujeto borra los archivos intermedios (ver LIMPIEZA). Los borrados quedan
-      listados en .cleanup_done y se consideran existentes al reanudar, para no rehacer pasos.
+Los atlas, las plantillas MNI, main_index, tck2bundles.npy y read_write_bundle.py deben estar en la misma
+carpeta que este script (y que qc_dwi.py).
 
 @author: snava
 """
@@ -54,20 +25,10 @@ import traceback
 import nibabel as nb
 import nibabel.streamlines.tck as TF
 import numpy as np
-from dipy.io.streamline import load_tractogram, save_tractogram
-from dipy.tracking.streamline import transform_streamlines
-from joblib import Parallel, delayed
 from nibabel.streamlines.tractogram import Tractogram
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# Atlas, main_index, plantillas MNI, tck2bundles.npy y read_write_bundle.py se comparten con v1 y con otros
-# pipelines del repositorio: se leen de su carpeta (o de la variable NEUROCISC_RECURSOS), sin copiarlos.
-RECURSOS = os.path.abspath(os.environ.get(
-    "NEUROCISC_RECURSOS", os.path.join(SCRIPT_DIR, "..", "Pipeline_ProcesamientoDiff_TractySegmentacion")))
-sys.path.insert(0, RECURSOS)
-import read_write_bundle as bt  # noqa: E402
-
-MNI_1mm = os.path.join(RECURSOS, "MNI152_T1_1mm.nii.gz")
+# Atlas, plantillas y main_index: en la carpeta de este script, como en la v1
+RECURSOS = os.path.dirname(os.path.abspath(__file__))
 MNI_1mm_brain = os.path.join(RECURSOS, "MNI152_T1_1mm_brain.nii.gz")
 ANTS_PREFIX = "ants_T12MNI_"  # salidas de antsRegistrationSyN.sh (0GenericAffine.mat, 1Warp, 1InverseWarp)
 MAIN_INDEX = os.path.join(RECURSOS, "main_index")
@@ -75,6 +36,7 @@ WORKDIR_NAME = "proc_dwi_v2"
 METODOS_FILE = "metodos.json"  # entradas, correccion de distorsion, parametros y versiones del sujeto
 PE_FILE = "pe.json"            # fase y readout de la DWI, en los ejes del NIfTI de entrada (para MRtrix)
 SYNB0_IMAGE = "leonyichencai/synb0-disco:v3.1"
+ATLAS = {"SWM": ("AtlasRo", "AtlasRo_estables.txt", ""), "DWM": ("atlas_faisceaux", "atlas_faisceaux.txt", "_MNI")}
 PE_VALIDAS = ("i", "i-", "j", "j-", "k", "k-")
 T1_BRAIN = "T1w_acpc_dc_restore_brain.nii.gz"
 T1_HEAD = "T1w_acpc_dc_restore.nii.gz"
@@ -87,9 +49,8 @@ METRICAS = [("FA", "dti_FA.nii.gz"), ("AD", "dti_AD.nii.gz"), ("RD", "dti_RD.nii
 
 CLEANUP_FILE = ".cleanup_done"
 
-# Archivos intermedios que borra -cleanup (patrones relativos a proc_dwi_v2/). De las imagenes DWI
-# solo quedan las originales y dwi_preproc_unbiased (con sus gradientes). Se conservan tambien mascara,
-# DTI, registros, 5TT, FOD normalizados, tractogramas, warps, DWM/SWM, el PDF de QC y los logs.
+# Intermedios que borra -cleanup. Quedan dwi_preproc_unbiased, mascara, DTI, registros, 5TT, FOD
+# normalizados, tractogramas, warps, DWM/SWM, metricas, el PDF de QC y los logs.
 LIMPIEZA = [
     "run[0-9].nii.gz", "run[0-9].bvec", "run[0-9].bval",      # copias de las series de entrada
     "run*_den.nii.gz", "run*_den_unr.nii.gz",                # quedan incluidos en dwi_den
@@ -105,70 +66,24 @@ LIMPIEZA = [
     "tensor.nii.gz", "RF_voxels.nii.gz", "b0_mean_hdbet.nii.gz", "b0_hdbet_bet.nii.gz",
     "diff2struct_epireg*", "diff2struct_init.mat", "diff2struct_fast*",  # auxiliares de epi_reg / BBR
     f"{ANTS_PREFIX}Warped.nii.gz", f"{ANTS_PREFIX}InverseWarped.nii.gz",  # T1w deformado (QC lo recalcula)
-    "inv_identity_warp_no.nii.gz", "*_to_MNI152_*.log",       # restos del registro con fnirt
-    "output.tck", "output_sift.tck", "tmp_dwicat_*.mif", "gmwmi_seed.nii.gz",
-    "b0_mean.nii.gz", "b0_mean_bet*.nii.gz",                  # restos de versiones anteriores
+    "output.tck", "tmp_dwicat_*.mif", "gmwmi_seed.nii.gz",
     "synb0", "b0_pre.nii.gz", "b0_topup*",                    # Synb0 (queda b0_synb0.nii.gz para el QC)
     "eddy_in.nii", "eddy_out*", "eddy_mask.nii.gz", "eddy_acqp.txt", "eddy_index.txt", "bvecs", "bvals",
     "eddy_qc",                                                # metricas de eddy (su reporte queda en QC/)
     "qc_tmp", "qc",                                           # imagenes intermedias del QC (queda QC/)
 ]
-LIMPIADOS = set()
-
-T = np.load(os.path.join(RECURSOS, "tck2bundles.npy"))
-T_inv = np.linalg.inv(T)
 
 
-
-def apply_aff_bundle_parallel(bunIn, bunOut, t, nthreads):
-    newPoints = Parallel(n_jobs=nthreads)(delayed(apply_aff_fiber)(f, t) for f in bunIn)
-    return newPoints
-
-
-def apply_aff_fiber(f, t):
-    newfib = []
-    for p in f:
-        pt = apply_aff_point(p, t)
-        newfib.append((pt))
-    return np.asarray(newfib, dtype=np.float32)
-
-
-def apply_aff_point(inPoint, t):
-    Tfrm = t
-    tmp = Tfrm * np.transpose(np.matrix(np.append(inPoint, 1)))
-    outpoint = np.squeeze(np.asarray(tmp))[0:3]
-    return outpoint
-
-
-def file_fchange(bundle_path, bundle_output_path, format_change, header=MNI_1mm, nthreads=-1):
-    """
-        Comando para transformar formatos de tractos ("tck2trk","bundles2tck","tck2bundles","trk2tck").
-        Ver documentacion en Procesamiento_Mrtrix3.py
-    """
-    if format_change == "bundles2tck":
-        streamlines = bt.read_bundle(bundle_path)
-        streamlines = np.array(streamlines)
-        streamlines_tck = transform_streamlines(streamlines, T_inv)
-        centroids_tractogram_file = Tractogram(streamlines=streamlines_tck)
-        centroids_tractogram_file.affine_to_rasmm = np.eye(4)
-        centroids_tck = TF.TckFile(centroids_tractogram_file, header={'timestamp': 0})
-        centroids_tck.save(bundle_output_path)
-
-    elif format_change == "tck2bundles":
-        fibs_tck = load_tractogram(bundle_path, header, bbox_valid_check=False).streamlines
-        fibs_aff = apply_aff_bundle_parallel(fibs_tck, '', T, nthreads)
-        bt.write_bundle(bundle_output_path, fibs_aff)
-
-    elif format_change == "trk2tck":
-        fibs_trk = load_tractogram(bundle_path, 'same', bbox_valid_check=False)
-        save_tractogram(fibs_trk, bundle_output_path, bbox_valid_check=False)
-
-    elif format_change == "tck2trk":
-        fibs_tck = load_tractogram(bundle_path, header, bbox_valid_check=False)
-        save_tractogram(fibs_tck, bundle_output_path, bbox_valid_check=False)
-
-    else:
-        assert format_change in ["tck2trk", "bundles2tck", "tck2bundles", "trk2tck"], "Cambio de formato especificado no existe"
+def tck2bundles(tck, salida):
+    """Tractografia en MNI (.tck, mm) al formato .bundles que lee main_index (transformacion tck2bundles.npy)."""
+    import read_write_bundle as bt
+    T = np.load(os.path.join(RECURSOS, "tck2bundles.npy"))
+    sl = nb.streamlines.load(tck).streamlines
+    datos = sl.get_data()
+    P = np.empty_like(datos, dtype=np.float32)
+    for i in range(0, len(datos), 10_000_000):  # por bloques para no duplicar la memoria
+        P[i:i + 10_000_000] = datos[i:i + 10_000_000] @ T[:3, :3].T + T[:3, 3]
+    bt.write_bundle(salida, np.split(P, np.cumsum(sl._lengths)[:-1]))
 
 
 # ---------------------------------------------------------------------------
@@ -210,46 +125,12 @@ def step(outputs, cmds, cwd):
         run(c, cwd)
 
 
-def migrar_mif(wd):
-    """
-    Convierte a .nii.gz los .mif de un sujeto procesado con una version anterior de v2, para que el
-    pipeline los reconozca y no repita pasos. Las DWI exportan sus gradientes (con la rotacion de eddy
-    en dwi_preproc) a bvec/bval. El .mif se borra solo si la conversion termino bien.
-    """
-    mifs = sorted(glob.glob(os.path.join(wd, "*.mif")))
-    if not mifs:
-        return
-    print(f"--Migracion de {len(mifs)} archivos .mif a .nii.gz--")
-    # T1w_acpc_dc_restore_brain.mif era solo una copia del .nii.gz
-    redundantes = {"T1w_acpc_dc_restore_brain.mif"}
-    for mif in mifs:
-        nombre = os.path.basename(mif)[:-4]
-        if nombre + ".mif" in redundantes:
-            os.remove(mif)
-            continue
-        if nombre.startswith("tmp_dwicat_"):
-            os.remove(mif)
-            continue
-        grad = ""
-        if nombre in ("dwi_den", "dwi_preproc") or (nombre.startswith("run") and nombre[3:].isdigit()):
-            grad = f" -export_grad_fsl {nombre}.bvec {nombre}.bval"
-        run(f"mrconvert {nombre}.mif {nombre}.nii.gz{grad} -force", wd)
-        os.remove(mif)
-
-
 def existe(wd, archivo):
-    """Existe en wd o fue borrado por -cleanup (en ese caso el paso ya se hizo)."""
-    return os.path.exists(os.path.join(wd, archivo)) or archivo in LIMPIADOS
-
-
-def cargar_limpiados(wd):
-    global LIMPIADOS
-    f = os.path.join(wd, CLEANUP_FILE)
-    LIMPIADOS = set(l.strip() for l in open(f) if l.strip()) if os.path.exists(f) else set()
+    return os.path.exists(os.path.join(wd, archivo))
 
 
 def limpiar(wd):
-    """Borra los intermedios de LIMPIEZA y los registra en .cleanup_done."""
+    """Borra los intermedios de LIMPIEZA y deja la lista en .cleanup_done (el sujeto queda terminado)."""
     borrados, liberado = [], 0
     for patron in LIMPIEZA:
         for p in sorted(glob.glob(os.path.join(wd, patron))):
@@ -265,49 +146,6 @@ def limpiar(wd):
         f.writelines(b + "\n" for b in borrados)
     log_msg(f"$ __cleanup__ {len(borrados)} archivos borrados, {liberado / 1e9:.2f} GB liberados")
     print(f"  Cleanup: {len(borrados)} archivos borrados, {liberado / 1e9:.2f} GB liberados")
-
-
-def migrar_registro_mni(wd, suj):
-    """
-    Sujetos registrados a MNI con flirt + fnirt (versiones anteriores): se borran el registro y todo lo
-    que depende de el (tractografia en MNI, bundles, segmentacion, metricas y QC) para rehacerlo con ANTs.
-    """
-    if not existe(wd, FINAL_FILE) or os.path.exists(os.path.join(wd, f"{ANTS_PREFIX}1Warp.nii.gz")):
-        return
-    log_msg("AVISO: el registro a MNI se hizo con fnirt; se rehace con ANTs SyN (y bundles, segmentacion, "
-            "metricas y QC).")
-    invalidar(wd, suj, ["warps_T12MNI.nii.gz", "warps_MNI2T1.nii.gz", "T12MNI_affine.mat",
-                        "inv_identity_warp_no.nii.gz"] +
-              [os.path.basename(p) for p in glob.glob(os.path.join(wd, "*_to_MNI152_*.log"))])
-
-
-def migrar_tractografia(wd, suj):
-    """
-    Versiones anteriores sembraban en toda la mascara DWI (sin -seed_gmwmi) y borraban la tractografia
-    original, dejando solo la de 21 puntos. Se rehace la tractografia y todo lo que depende de ella.
-    """
-    if not existe(wd, TCK_21P) or existe(wd, TCK_DWI):
-        return
-    log_msg("AVISO: tractografia de una version anterior (sin -seed_gmwmi y sin la tractografia original); "
-            "se rehace junto con MNI, bundles, segmentacion, metricas y QC.")
-    invalidar(wd, suj, [TCK_21P])
-
-
-def invalidar(wd, suj, extra=()):
-    """Borra la tractografia en MNI y todo lo posterior (y `extra`), tambien de la lista de -cleanup."""
-    borrar = list(extra) + [FINAL_FILE, "tractography_prob_sift_3M_21p_MNI.bundles",
-                            "tractography_prob_sift_3M_21p_MNI.bundlesdata", "mrtrix_warp_MNI2dwi.nii.gz",
-                            "mrtrix_warp_dwi2MNI.nii.gz", "DWM", "SWM", "metricas", f"QC_{suj}.pdf",
-                            os.path.join("QC", f"QC_{suj}.pdf"), "qc_tmp"]
-    for b in borrar:
-        p = os.path.join(wd, b)
-        if os.path.isdir(p):
-            shutil.rmtree(p)
-        elif os.path.exists(p):
-            os.remove(p)
-    LIMPIADOS.difference_update(borrar)
-    with open(os.path.join(wd, CLEANUP_FILE), "w") as f:
-        f.writelines(b + "\n" for b in sorted(LIMPIADOS))
 
 
 def contar_puntos(tck):
@@ -430,15 +268,10 @@ def find_dwi_series(suj_dir):
     return runs, b0s, t1_brain, t1_head
 
 
-def detectar_runtime(preferido):
-    """Runtime de contenedores para Synb0: docker (con permisos y daemon activo), apptainer o singularity."""
-    candidatos = ["docker", "apptainer", "singularity"] if preferido == "auto" else [preferido]
-    for c in candidatos:
-        if shutil.which(c) is None:
-            continue
-        if c == "docker" and subprocess.run("docker info", shell=True, capture_output=True).returncode != 0:
-            continue
-        return c
+def detectar_docker():
+    """'docker' si esta instalado, con permisos y el daemon activo (Synb0 corre en Docker)."""
+    if shutil.which("docker") and subprocess.run("docker info", shell=True, capture_output=True).returncode == 0:
+        return "docker"
     return None
 
 
@@ -452,25 +285,27 @@ def buscar_licencia(arg):
     return None
 
 
-def synb0_cmd(runtime, args, licencia, stripped):
+def synb0_cmd(args, licencia, stripped):
     """Comando de Synb0-DisCo; INPUTS/OUTPUTS son synb0/ dentro de la carpeta de trabajo (cwd)."""
-    flags = " --stripped" if stripped else ""
-    if runtime == "docker":
-        return (f"docker run --rm --user {os.getuid()}:{os.getgid()} -v \"$PWD/synb0/INPUTS\":/INPUTS "
-                f"-v \"$PWD/synb0/OUTPUTS\":/OUTPUTS -v '{licencia}':/extra/freesurfer/license.txt "
-                f"{args.synb0_image}{flags}")
-    imagen = args.synb0_sif or f"docker://{args.synb0_image}"
-    return (f"{runtime} run -e -B \"$PWD/synb0/INPUTS\":/INPUTS -B \"$PWD/synb0/OUTPUTS\":/OUTPUTS "
-            f"-B '{licencia}':/extra/freesurfer/license.txt '{imagen}'{flags}")
+    return (f"docker run --rm --user {os.getuid()}:{os.getgid()} -v \"$PWD/synb0/INPUTS\":/INPUTS "
+            f"-v \"$PWD/synb0/OUTPUTS\":/OUTPUTS -v '{licencia}':/extra/freesurfer/license.txt "
+            f"{args.synb0_image}{' --stripped' if stripped else ''}")
 
 
-def synb0_version(runtime, args):
-    if runtime == "docker":
-        r = subprocess.run(f"docker image inspect --format '{{{{index .RepoDigests 0}}}}' {args.synb0_image}",
-                           shell=True, capture_output=True, text=True)
-        if r.returncode == 0 and r.stdout.strip():
-            return r.stdout.strip()
-    return args.synb0_sif or args.synb0_image
+def synb0_version(args):
+    r = subprocess.run(f"docker image inspect --format '{{{{index .RepoDigests 0}}}}' {args.synb0_image}",
+                       shell=True, capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else args.synb0_image
+
+
+def recursos_faltantes(segmentacion):
+    """Archivos de la carpeta del script que faltan para registrar a MNI y segmentar."""
+    req = ["MNI152_T1_1mm_brain.nii.gz", "tck2bundles.npy", "read_write_bundle.py"]
+    if segmentacion:
+        req.append("main_index")
+        for tipo in segmentacion:
+            req += ATLAS[tipo][:2]
+    return [f for f in req if not os.path.exists(os.path.join(RECURSOS, f))]
 
 
 def validar_sujeto(suj_dir, args, runtime, licencia):
@@ -516,7 +351,7 @@ def validar_sujeto(suj_dir, args, runtime, licencia):
 
     # b0 de fase inversa (adquisicion investigativa): serie de solo b0 con la fase opuesta a la DWI
     rev = [s for s in b0s if pe and opposite_pe(pe, s["meta"].get("PhaseEncodingDirection") or "")]
-    faltan_synb0 = [f for f, ok in (("Docker/Apptainer/Singularity", runtime),
+    faltan_synb0 = [f for f, ok in (("Docker", runtime),
                                     ("licencia de FreeSurfer (-fs_license o FS_LICENSE)", licencia),
                                     ("direccion de fase (.json, acq.json o -pe_dir)", pe)) if not ok]
     sdc = args.sdc
@@ -599,7 +434,6 @@ def corregir_synb0(wd, datos, args, runtime, licencia, nt):
     """
     G_DEN = "-fslgrad dwi_den.bvec dwi_den.bval"
     print("--Synb0-DisCo (b0 sintetica sin distorsion + topup) y eddy--")
-    # synb0/ se borra con -cleanup: al reanudar, si ya existe dwi_preproc no se rehace nada
     if all(existe(wd, f) for f in ("dwi_preproc.nii.gz", "dwi_preproc.bvec", "dwi_preproc.bval")):
         print("  [omitido, ya existe] dwi_preproc.nii.gz")
         return
@@ -620,7 +454,7 @@ def corregir_synb0(wd, datos, args, runtime, licencia, nt):
         linea = open(os.path.join(wd, "synb0", "b0_pe.txt")).read().split()
         with open(acqp, "w") as f:  # b0 real y b0 sintetica (sin distorsion: readout 0)
             f.write(" ".join(linea) + "\n" + " ".join(linea[:3]) + " 0.000\n")
-    step("synb0/OUTPUTS/topup_fieldcoef.nii.gz", synb0_cmd(runtime, args, licencia, stripped), wd)
+    step("synb0/OUTPUTS/topup_fieldcoef.nii.gz", synb0_cmd(args, licencia, stripped), wd)
     step("b0_synb0.nii.gz", "mrconvert synb0/OUTPUTS/b0_u.nii.gz b0_synb0.nii.gz -force", wd)
 
     for c in [f"mrconvert dwi_den.nii.gz {G_DEN} -json_import {PE_FILE} eddy_in.nii -strides -1,+2,+3,+4 "
@@ -662,13 +496,14 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
     suj = os.path.basename(os.path.normpath(suj_dir))
     wd = os.path.join(suj_dir, WORKDIR_NAME)
     os.makedirs(wd, exist_ok=True)
+    if existe(wd, CLEANUP_FILE):
+        print(f"  [omitido] {suj} ya se proceso y limpio (-cleanup); para rehacerlo, borrar {WORKDIR_NAME}/")
+        return
     LOG_FILE = os.path.join(wd, "pipeline_v2.log")
     sdc = datos["sdc"]
     log_msg(f"INICIO procesamiento (correccion de distorsion: {sdc}, PE {datos['pe']}, readout {datos['trt']} s, "
             f"fuente {datos['fuente_pe']})")
     nt = args.nthreads
-    migrar_mif(wd)
-    cargar_limpiados(wd)
 
     # Registro de entradas y metodo (lo usa el QC). La fase se guarda en los ejes del NIfTI de entrada.
     rel = lambda p: os.path.relpath(p, suj_dir) if p else None
@@ -686,7 +521,7 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
                     PhaseEncodingDirection=datos["pe"], TotalReadoutTime=datos["trt"],
                     fuente_fase=datos["fuente_pe"], versiones=versiones())
     if sdc == "synb0":
-        guardar_metodos(wd, synb0={"imagen": synb0_version(runtime, args), "runtime": runtime,
+        guardar_metodos(wd, synb0={"imagen": synb0_version(args), "runtime": runtime,
                                    "t1": T1_HEAD if datos["t1_head"] else T1_BRAIN + " (--stripped)"})
 
     # Todas las imagenes se guardan en .nii.gz. Los gradientes van en archivos FSL (bvec/bval) y se pasan
@@ -795,11 +630,6 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
         ], wd)
     else:
         step("dwi_mask.nii.gz", f"dwi2mask dwi_preproc_unbiased.nii.gz {G} dwi_mask.nii.gz -nthreads {nt} -force", wd)
-    if existe(wd, "dwi_mask.nii.gz"):
-        hecha = "hdbet" if existe(wd, "b0_hdbet_bet.nii.gz") else "dwi2mask"
-        if hecha != args.mask:
-            print(f"  AVISO: dwi_mask.nii.gz existente se genero con {hecha}, no con {args.mask}. Para rehacerla "
-                  "hay que borrar dwi_mask.nii.gz y todos los pasos posteriores.")
 
     shells = [int(round(float(b))) for b in subprocess.run(
         f"mrinfo dwi_preproc_unbiased.nii.gz {G} -shell_bvalues", shell=True, cwd=wd,
@@ -856,43 +686,40 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
     # ---- CSD multitejido -------------------------------------------------------
     # Con >= 2 shells b > 0 se separan 3 tejidos (WM, GM, CSF). Con una sola shell (clinico) solo hay datos
     # para 2 (WM + CSF): GM y CSF no se distinguen sin una segunda shell.
-    if args.diff_model == "CSD":
-        print(f"--CSD ({len(shells_b)} shell(s) b>0: {shells_b}); dhollander; msmt_csd; mtnormalise--")
-        step(["response_wm.txt", "response_gm.txt", "response_csf.txt"],
-             f"dwi2response dhollander dwi_preproc_unbiased.nii.gz {G} response_wm.txt response_gm.txt response_csf.txt "
-             f"-mask dwi_mask.nii.gz -voxels RF_voxels.nii.gz -nthreads {nt} -force", wd)
-        if len(shells_b) >= 2:
-            step(["wmfod.nii.gz", "gm.nii.gz", "csf.nii.gz"],
-                 f"dwi2fod msmt_csd dwi_preproc_unbiased.nii.gz {G} response_wm.txt wmfod.nii.gz response_gm.txt gm.nii.gz "
-                 f"response_csf.txt csf.nii.gz -mask dwi_mask.nii.gz -nthreads {nt} -force", wd)
-            step("wmfod_norm.nii.gz",
-                 "mtnormalise wmfod.nii.gz wmfod_norm.nii.gz gm.nii.gz gm_norm.nii.gz csf.nii.gz csf_norm.nii.gz "
-                 f"-mask dwi_mask.nii.gz -nthreads {nt} -force", wd)
-        else:
-            step(["wmfod.nii.gz", "csf.nii.gz"],
-                 f"dwi2fod msmt_csd dwi_preproc_unbiased.nii.gz {G} response_wm.txt wmfod.nii.gz "
-                 f"response_csf.txt csf.nii.gz -mask dwi_mask.nii.gz -nthreads {nt} -force", wd)
-            step("wmfod_norm.nii.gz",
-                 "mtnormalise wmfod.nii.gz wmfod_norm.nii.gz csf.nii.gz csf_norm.nii.gz "
-                 f"-mask dwi_mask.nii.gz -nthreads {nt} -force", wd)
+    print(f"--CSD ({len(shells_b)} shell(s) b>0: {shells_b}); dhollander; msmt_csd; mtnormalise--")
+    step(["response_wm.txt", "response_gm.txt", "response_csf.txt"],
+         f"dwi2response dhollander dwi_preproc_unbiased.nii.gz {G} response_wm.txt response_gm.txt response_csf.txt "
+         f"-mask dwi_mask.nii.gz -voxels RF_voxels.nii.gz -nthreads {nt} -force", wd)
+    if len(shells_b) >= 2:
+        step(["wmfod.nii.gz", "gm.nii.gz", "csf.nii.gz"],
+             f"dwi2fod msmt_csd dwi_preproc_unbiased.nii.gz {G} response_wm.txt wmfod.nii.gz response_gm.txt gm.nii.gz "
+             f"response_csf.txt csf.nii.gz -mask dwi_mask.nii.gz -nthreads {nt} -force", wd)
+        step("wmfod_norm.nii.gz",
+             "mtnormalise wmfod.nii.gz wmfod_norm.nii.gz gm.nii.gz gm_norm.nii.gz csf.nii.gz csf_norm.nii.gz "
+             f"-mask dwi_mask.nii.gz -nthreads {nt} -force", wd)
+    else:
+        step(["wmfod.nii.gz", "csf.nii.gz"],
+             f"dwi2fod msmt_csd dwi_preproc_unbiased.nii.gz {G} response_wm.txt wmfod.nii.gz "
+             f"response_csf.txt csf.nii.gz -mask dwi_mask.nii.gz -nthreads {nt} -force", wd)
+        step("wmfod_norm.nii.gz",
+             "mtnormalise wmfod.nii.gz wmfod_norm.nii.gz csf.nii.gz csf_norm.nii.gz "
+             f"-mask dwi_mask.nii.gz -nthreads {nt} -force", wd)
 
     # ---- Tractografia ---------------------------------------------------------
-    if args.flag_tracto == "prob":
-        print("--Inicio de calculo de tractografía Probabilistica--")
-        # Semillas en la interfaz sustancia gris - sustancia blanca (ACT, Smith et al. 2012): las fibras parten
-        # donde terminan anatomicamente, en vez de en cualquier punto de la mascara DWI (v1).
-        # Se conserva la tractografia SIFT original (TCK_DWI): de ella salen los fasciculos en espacio DWI y
-        # sus metricas. La version de 21 puntos (TCK_21P) solo se usa para llevarla a MNI y segmentar.
-        migrar_tractografia(wd, suj)
-        step([TCK_DWI, TCK_21P], [
-            "5tt2gmwmi 5TT.nii.gz gmwmi_seed.nii.gz -force",
-            "tckgen -algorithm iFOD2 wmfod_norm.nii.gz output.tck -act 5TT.nii.gz -backtrack -crop_at_gmwmi "
-            "-seed_gmwmi gmwmi_seed.nii.gz -maxlength 250 -minlength 25 -select 10M -cutoff 0.06 "
-            f"-nthreads {nt} -force",
-            f"tcksift output.tck wmfod_norm.nii.gz -act 5TT.nii.gz -term_number 3M {TCK_DWI} -nthreads {nt} -force",
-            f"tckresample {TCK_DWI} {TCK_21P} -num_points {N_PUNTOS} -force",
-            "rm -f output.tck",
-        ], wd)
+    print("--Inicio de calculo de tractografía Probabilistica--")
+    # Semillas en la interfaz sustancia gris - sustancia blanca (ACT, Smith et al. 2012): las fibras parten
+    # donde terminan anatomicamente, en vez de en cualquier punto de la mascara DWI (v1).
+    # De la tractografia SIFT (TCK_DWI) salen los fasciculos en espacio DWI; la de 21 puntos (TCK_21P) se
+    # lleva a MNI para segmentar.
+    step([TCK_DWI, TCK_21P], [
+        "5tt2gmwmi 5TT.nii.gz gmwmi_seed.nii.gz -force",
+        "tckgen -algorithm iFOD2 wmfod_norm.nii.gz output.tck -act 5TT.nii.gz -backtrack -crop_at_gmwmi "
+        "-seed_gmwmi gmwmi_seed.nii.gz -maxlength 250 -minlength 25 -select 10M -cutoff 0.06 "
+        f"-nthreads {nt} -force",
+        f"tcksift output.tck wmfod_norm.nii.gz -act 5TT.nii.gz -term_number 3M {TCK_DWI} -nthreads {nt} -force",
+        f"tckresample {TCK_DWI} {TCK_21P} -num_points {N_PUNTOS} -force",
+        "rm -f output.tck",
+    ], wd)
 
     # ---- Tractografia a espacio MNI ------------------------------------------
     # ANTs SyN del T1w (en espacio DWI) a MNI152 1 mm. Para tcktransform se necesita, en cada voxel del
@@ -900,15 +727,12 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
     # MNI se amplia 40 mm para que ningun punto quede fuera: tcktransform descarta esos puntos y main_index
     # lee las fibras con largo fijo (N_PUNTOS), por lo que una fibra mas corta corrompe la segmentacion.
     print("--Registro de tractografía al espacio MNI152 (ANTs SyN)--")
-    migrar_registro_mni(wd, suj)
     if existe(wd, FINAL_FILE):
         print(f"  [omitido, ya existe] {FINAL_FILE}")
     else:
         t1d = "T1w_acpc_dc_restore_brain_diff_space.nii.gz"
         if not os.path.exists(os.path.join(wd, f"{ANTS_PREFIX}1InverseWarp.nii.gz")):
             run(f"antsRegistrationSyN.sh -d 3 -f '{MNI_1mm_brain}' -m {t1d} -t s -n {nt} -o {ANTS_PREFIX}", wd)
-        if not os.path.exists(os.path.join(wd, TCK_21P)):  # borrada por -cleanup
-            run(f"tckresample {TCK_DWI} {TCK_21P} -num_points {N_PUNTOS} -force", wd)
         for c in [f"mrgrid '{MNI_1mm_brain}' pad -uniform 40 tmp_mni_pad.nii.gz -force",
                   "warpinit tmp_mni_pad.nii.gz tmp_identity[].nii.gz -force"] + [
                   f"antsApplyTransforms -d 3 -e 0 -i tmp_identity{i}.nii.gz -o tmp_warp{i}.nii.gz -r {t1d} "
@@ -929,17 +753,14 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
     if not existe(wd, os.path.basename(bundles)):
         print("--Transformacion de formato de tractografia (.tck a .bundles)--")
         log_msg("$ __bundles__ tck2bundles")
-        file_fchange(os.path.join(wd, FINAL_FILE), bundles, "tck2bundles", header=MNI_1mm)
+        tck2bundles(os.path.join(wd, FINAL_FILE), bundles)
 
     # ---- Segmentacion de fasciculos -------------------------------------------
     if args.segmentacion is not None:
         print("--Inicio de proceso de segmentación de fascículos--")
         tractography = None  # TCK_DWI (mismo orden de fibras que la de 21 puntos), se carga si hace falta
-
-        atlas_cfg = {"SWM": ("AtlasRo", "AtlasRo_estables.txt", ""),
-                     "DWM": ("atlas_faisceaux", "atlas_faisceaux.txt", "_MNI")}
         for tipo in args.segmentacion:
-            atlas_dir, atlas_txt, sufijo = atlas_cfg[tipo]
+            atlas_dir, atlas_txt, sufijo = ATLAS[tipo]
             print(f"Calculo de Fascículos {tipo}")
             out = os.path.join(wd, tipo)
             n_atlas = sum(1 for l in open(os.path.join(RECURSOS, atlas_txt)) if l.strip())
@@ -974,12 +795,7 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
             # Los indices de main_index se refieren al orden de las fibras, que tckresample conserva: los
             # fasciculos en espacio DWI se extraen de la tractografia original, con todos sus puntos.
             if tractography is None:
-                tck = TCK_DWI
-                if not os.path.exists(os.path.join(wd, tck)):
-                    tck = TCK_21P
-                    log_msg(f"AVISO: no existe {TCK_DWI} (version anterior); los fasciculos en espacio DWI "
-                            f"se extraen de {TCK_21P}.")
-                tractography = nb.streamlines.load(os.path.join(wd, tck)).streamlines
+                tractography = nb.streamlines.load(os.path.join(wd, TCK_DWI)).streamlines
             for fasc_ind in os.listdir(ind_dir):
                 nombre_fasc = fasc_ind.removesuffix(".txt").removesuffix(sufijo)
                 indices = open(os.path.join(out, "indices_folder", fasc_ind)).readlines()
@@ -990,7 +806,7 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
 
         # ---- Metricas por fasciculo -------------------------------------------
         for tipo in args.segmentacion:
-            atlas_dir, atlas_txt, sufijo = atlas_cfg[tipo]
+            atlas_dir, atlas_txt, sufijo = ATLAS[tipo]
             csv = os.path.join("metricas", f"bundle_metrics_{tipo}.csv")
             if existe(wd, csv):
                 print(f"  [omitido, ya existe] {csv}")
@@ -1003,12 +819,6 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
 
     # ---- QC en PDF -------------------------------------------------------------
     qc_pdf = os.path.join(wd, "QC", f"QC_{suj}.pdf")
-    if os.path.exists(os.path.join(wd, f"QC_{suj}.pdf")) and not os.path.exists(qc_pdf):
-        # versiones anteriores dejaban el PDF en proc_dwi_v2/; ahora va en QC/ junto al reporte de eddy
-        import qc_dwi
-        os.makedirs(os.path.dirname(qc_pdf), exist_ok=True)
-        shutil.move(os.path.join(wd, f"QC_{suj}.pdf"), qc_pdf)
-        qc_dwi.copiar_eddy_quad(wd, suj)
     if os.path.exists(qc_pdf):
         print(f"  [omitido, ya existe] {os.path.basename(qc_pdf)} (usar qc_dwi.py para regenerarlo)")
     elif not args.no_qc:
@@ -1050,10 +860,6 @@ def main():
                         help="Ruta a la carpeta donde se encuentran los datos de sujetos a procesar.")
     parser.add_argument('-segmentacion', nargs='+', choices=['SWM', 'DWM'], default=None,
                         help="Tipo de segmentación de fascículos: SWM (fibras cortas), DWM (fibras largas), o ambas.")
-    parser.add_argument('-diff_model', type=str, choices=['CSD'], default='CSD',
-                        help="Modelo de difusión a utilizar (por defecto: CSD).")
-    parser.add_argument('-flag_tracto', type=str, choices=['prob'], default='prob',
-                        help="Tipo de algoritmo de tractografía a utilizar (por defecto: prob).")
     parser.add_argument('-degibbs', action='store_true',
                         help="Aplica mrdegibbs. Desactivado por defecto: la adquisicion usa Partial Fourier 6/8.")
     parser.add_argument('-dti', action='store_true',
@@ -1069,17 +875,13 @@ def main():
                         help="Correccion de distorsion por susceptibilidad. topup: con la b0 de fase inversa "
                              "(investigativo); synb0: b0 sintetica de Synb0-DisCo (clinico, solo AP o solo PA); "
                              "none: solo eddy. auto (defecto): topup si hay b0 inversa, si no synb0 si hay "
-                             "Docker/Apptainer y licencia de FreeSurfer, si no none.")
+                             "Docker y licencia de FreeSurfer, si no none.")
     parser.add_argument('-pe_dir', type=str, default=None, choices=PE_VALIDAS,
                         help="Direccion de fase de la DWI (ejes del NIfTI) si no esta en el .json ni en acq.json.")
     parser.add_argument('-readout', type=float, default=None,
                         help="TotalReadoutTime en s si no esta en el .json ni en acq.json (por defecto 0.05).")
-    parser.add_argument('-container', choices=['auto', 'docker', 'apptainer', 'singularity'], default='auto',
-                        help="Runtime de contenedores para Synb0 (por defecto el primero disponible).")
     parser.add_argument('-synb0_image', type=str, default=SYNB0_IMAGE,
                         help=f"Imagen de Synb0-DisCo (por defecto {SYNB0_IMAGE}).")
-    parser.add_argument('-synb0_sif', type=str, default=None,
-                        help="Imagen .sif local de Synb0 para Apptainer/Singularity.")
     parser.add_argument('-fs_license', type=str, default=None,
                         help="Licencia de FreeSurfer para Synb0 (por defecto FS_LICENSE, "
                              "$FREESURFER_HOME/license.txt o ~/license.txt).")
@@ -1097,20 +899,15 @@ def main():
         print(f"Error: La carpeta '{args.folder}' no existe.")
         return 1
 
-    for f in [MNI_1mm, MNI_1mm_brain]:
-        assert os.path.exists(f), f"Falta archivo '{f}', se utiliza para el registro al espacio MNI152."
+    faltan = recursos_faltantes(args.segmentacion)
+    if faltan:
+        print(f"Error: faltan en {RECURSOS}: {', '.join(faltan)}.\nProcesamiento_DWI.py y qc_dwi.py deben estar "
+              "en la misma carpeta que los atlas, las plantillas MNI y main_index.")
+        return 1
     for exe in ("antsRegistrationSyN.sh", "antsApplyTransforms"):
-        assert shutil.which(exe), f"No se encontro {exe} (ANTs) en el PATH."
-    if args.segmentacion is not None:
-        assert os.path.exists(MAIN_INDEX), "Falta el ejecutable main_index."
-        if "SWM" in args.segmentacion:
-            assert os.path.exists(os.path.join(RECURSOS, "AtlasRo")) and \
-                os.path.exists(os.path.join(RECURSOS, "AtlasRo_estables.txt")), \
-                "Archivos necesarios para segmentación de fibras cortas no encontrados."
-        if "DWM" in args.segmentacion:
-            assert os.path.exists(os.path.join(RECURSOS, "atlas_faisceaux")) and \
-                os.path.exists(os.path.join(RECURSOS, "atlas_faisceaux.txt")), \
-                "Archivos necesarios para segmentación de fibras largas no encontrados."
+        if not shutil.which(exe):
+            print(f"Error: no se encontro {exe} (ANTs) en el PATH.")
+            return 1
 
     folder = os.path.abspath(args.folder)
     sujetos = sorted(d for d in os.listdir(folder) if os.path.isdir(os.path.join(folder, d)))
@@ -1120,8 +917,8 @@ def main():
 
     runtime = licencia = None
     if args.sdc in ("auto", "synb0"):
-        runtime, licencia = detectar_runtime(args.container), buscar_licencia(args.fs_license)
-        print(f"Synb0-DisCo: runtime {runtime or 'no encontrado'} | licencia FreeSurfer {licencia or 'no encontrada'}")
+        runtime, licencia = detectar_docker(), buscar_licencia(args.fs_license)
+        print(f"Synb0-DisCo: Docker {'OK' if runtime else 'no disponible'} | licencia FreeSurfer {licencia or 'no encontrada'}")
 
     # Validacion de todos los sujetos antes de procesar
     validos = {}
