@@ -33,7 +33,7 @@ Funciona con dos tipos de adquisición, que solo difieren en la corrección de l
 | [ANTs](https://github.com/ANTsX/ANTs/releases) | Bias field y registro a MNI |
 | Python 3 | `nibabel`, `numpy`, `scipy`, `pandas`, `dipy`, `joblib`, `matplotlib` |
 | [HD-BET](https://github.com/MIC-DKFZ/HD-BET) (recomendado) | Máscara cerebral |
-| [Synb0-DisCo](https://github.com/MASILab/Synb0-DISCO) (datos clínicos) | b0 sintética; requiere Docker o Apptainer y una licencia de FreeSurfer |
+| [Synb0-DisCo](https://github.com/MASILab/Synb0-DISCO) (datos clínicos) | b0 sintética; requiere Docker y una licencia de FreeSurfer |
 
 ## Instalación
 
