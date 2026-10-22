@@ -26,8 +26,8 @@ def write_bundle( outfile, points ):
   f = open( outfile + 'data','wb' )
   ncount = len( points )
   for i in range( ncount ):
-    f.write(N.array( [ len( points[ i ] ) ], N.int32 ).tostring() )
-    f.write( points[ i ].ravel().tostring() )
+    f.write(N.array( [ len( points[ i ] ) ], N.int32 ).tobytes() )
+    f.write( points[ i ].ravel().tobytes() )
 
   f.close()
 
@@ -42,8 +42,8 @@ def write_bundle2( outfile, points,label ):
   f = open( outfile + 'data','wb' )
   ncount = len( points )
   for i in range( ncount ):
-    f.write(N.array( [ len( points[ i ] ) ], N.int32 ).tostring() )
-    f.write( points[ i ].ravel().tostring() )
+    f.write(N.array( [ len( points[ i ] ) ], N.int32 ).tobytes() )
+    f.write( points[ i ].ravel().tobytes() )
 
   f.close()
 
@@ -131,8 +131,8 @@ def write_bundle_severalbundles( outfile, points, bundles = [] ):
     bun = points[ i ]
     for i in range( size ):
 
-      f.write( N.array( [ len( bun[ i ] ) ], N.int32 ).tostring() )
-      f.write( bun[ i ].ravel().tostring() )
+      f.write( N.array( [ len( bun[ i ] ) ], N.int32 ).tobytes() )
+      f.write( bun[ i ].ravel().tobytes() )
   f.close()
   # wrtie minf file
   minf = """attributes = {\n    'binary' : 1,\n    'bundles' : %s,\n    'byte_order' : 'DCBA',\n    'curves_count' : %s,\n    'data_file_name' : '*.bundlesdata',\n    'format' : 'bundles_1.0',\n    'space_dimension' : 3\n  }"""
