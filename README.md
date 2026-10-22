@@ -40,12 +40,10 @@ Funciona con dos tipos de adquisición, que solo difieren en la corrección de l
 El pipeline usa los atlas, `main_index` y las plantillas MNI de la carpeta `Algoritmos_y_Archivos/Pipeline_ProcesamientoDiff_TractySegmentacion/` del repositorio [Lab_viz_UDEC](https://github.com/SebNav/Lab_viz_UDEC).
 
 - **Si ya tienes `Algoritmos_y_Archivos`:** descarga `Procesamiento_DWI.py` y `qc_dwi.py` y guárdalos juntos a los archivos de `Pipeline_ProcesamientoDiff_TractySegmentacion/` (donde está `Procesamiento_Mrtrix3.py`).
-- **Si no lo tienes:**
+- **Si no lo tienes:** clona el repositorio completo, que ya incluye esta carpeta:
 
 ```
 git clone https://github.com/SebNav/Lab_viz_UDEC.git
-cd Lab_viz_UDEC/Algoritmos_y_Archivos
-git clone https://github.com/SebNav/Pipeline_DWI.git
 ```
 
 La instalación de HD-BET y Synb0-DisCo se explica en [INSTALACION.md](INSTALACION.md).

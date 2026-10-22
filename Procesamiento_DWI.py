@@ -529,6 +529,9 @@ def validar_sujeto(suj_dir, args, runtime, licencia):
             sdc = "none"
             avisos.append("sin b0 de fase inversa y Synb0 no disponible (falta: " + ", ".join(faltan_synb0) +
                           "): solo eddy, sin corregir la distorsion por susceptibilidad")
+            if pe is None and runtime and licencia:
+                avisos.append("para usar Synb0 basta indicar la direccion de fase, p. ej. -pe_dir j- (o un acq.json "
+                              "en la carpeta del sujeto)")
 
     if sdc == "topup":
         if len(rev) != 1:
@@ -554,7 +557,7 @@ def validar_sujeto(suj_dir, args, runtime, licencia):
     if sdc != "topup" and rev:
         avisos.append(f"hay una b0 de fase inversa ({rev[0]['name']}) que no se usa con -sdc {sdc}")
     if sdc == "none" and pe is None:
-        pe = "j-"
+        pe, fuente = "j-", "supuesta"
         avisos.append("direccion de fase desconocida, se asume j- (sin topup solo la usa eddy)")
     if trt is None:
         trt = 0.05
