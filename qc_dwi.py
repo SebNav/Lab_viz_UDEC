@@ -7,14 +7,14 @@ detectar rapido los problemas de cada sujeto antes de analisis mas complejos. To
 
 Paginas:
     1. Resumen: series usadas y correccion de distorsion, movimiento y cortes outlier (eddy), metricas
-       con valores de referencia orientativos, fasciculos segmentados y cobertura del FOV.
+       con valores de referencia orientativos y fasciculos sin alertas.
     2. Correccion de distorsion: b0 sin corregir, b0 de fase inversa (topup) o b0 sintetica (Synb0) y
        b0 corregido, con el borde de sustancia blanca del T1w superpuesto.
-    3. Registro T1w -> espacio DWI: FA con borde de sustancia blanca del T1w y T1w con mascara DWI.
+    3. Registro T1w -> espacio DWI: FA con el borde de sustancia blanca del T1w (y costo BBR en el resumen).
     4. Segmentacion 5TT sobre el T1w en espacio de difusion.
     5. Registro T1w -> MNI152: T1w deformado con bordes de la plantilla MNI y viceversa.
-    6. Cobertura del FOV: mascara DWI sobre la plantilla MNI y % de fibras de cada fasciculo del atlas
-       dentro de ella (separa fasciculos cortados por la adquisicion de fallas de tractografia).
+    6. Calidad de fasciculos: por fasciculo DWM, fibras, volumen, FA, concordancia con el atlas en MNI,
+       asimetria izquierda/derecha y % dentro del FOV de la adquisicion; para SWM, los fasciculos marcados.
     7. Tractografia: densidad de fibras (TDI) en espacio de difusion y en MNI.
     8-9. Fasciculos DWM / SWM (proyeccion "glass brain" sobre el T1w), con fasciculos no encontrados.
 
@@ -43,6 +43,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.collections import LineCollection
 import nibabel as nb
 import numpy as np
+import pandas as pd
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Plantillas y atlas compartidos (misma ubicacion que en Procesamiento_DWI.py)
@@ -56,6 +57,7 @@ SDC_TITULO = {"topup": "topup con b0 de fase inversa + eddy",
               "synb0": "Synb0-DisCo (b0 sintética) + topup + eddy",
               "none": "sin corrección de susceptibilidad, solo eddy"}
 WORKDIR_NAME = "proc_dwi_v2"
+T1_BRAIN = "T1w_acpc_dc_restore_brain.nii.gz"
 A4 = (11.69, 8.27)
 
 # Valores de referencia orientativos propuestos para este pipeline (no son un estandar publicado ni
@@ -66,9 +68,18 @@ REF = {
     "pts_in": 0.95,         # fraccion de puntos de streamlines dentro del cerebro
     "mot_rel": 0.5,         # movimiento relativo medio (mm)
     "rot_epireg": 15.0,     # rotacion DWI->T1w (grados), valores grandes sugieren fallo
+    "bbr": 0.4,             # costo BBR DWI->T1w: ~0.15-0.2 en multishell; un error de 2 mm lo sube a ~0.4
     "cob_completo": 85.0,   # % de fibras del atlas enteras dentro del FOV: fasciculo completo
     "cob_parcial": 60.0,    # bajo esto, incompleto (entre ambos, parcial). sujetos con FOV completo: >= 92 %
 }
+# Alertas por fasciculo (pag. 6): (ambar, rojo). Calibradas con 2 sujetos multishell y 1 clinico; el Dice
+# depende del fasciculo (fornix, esplenio y CG3 derecho dan 0.2-0.45 aun en sujetos sin problemas).
+ALERTAS = {
+    "DWM": {"n": (200, 50), "dice": (0.40, 0.25), "asim": (0.30, 0.50)},
+    "SWM": {"n": (100, 50), "dice": (0.70, 0.60)},
+}
+# Grilla MNI de 2 mm para comparar la densidad de fibras del sujeto con la del atlas (cubre la plantilla)
+MALLA_MNI = (np.array([-92.0, -128.0, -74.0]), 2.0, (92, 110, 92))
 
 
 # ---------------------------------------------------------------------------
@@ -167,6 +178,13 @@ def preparar(wd, force=False):
         ("qc_tmp/tdi_diff.nii.gz", f"tckmap {tck_dwi(wd)} -template {tpl} qc_tmp/tdi_diff.nii.gz -quiet -force"),
         ("qc_tmp/tdi_MNI.nii.gz", f"tckmap tractography_prob_sift_3M_21p_MNI.tck -template '{MNI_1mm_brain}' "
                               "qc_tmp/tdi_MNI.nii.gz -quiet -force"),
+        # b0 corregido en su resolucion y sustancia blanca del 5TT devuelta a la grilla del T1w original
+        # (el 5TT esta en espacio DWI solo por cabecera), para medir el costo BBR del registro
+        ("qc_tmp/bzero.nii.gz", f"{b0_corr} | mrmath - mean qc_tmp/bzero.nii.gz -axis 3 -force -quiet"),
+        ("qc_tmp/wmseg_t1.nii.gz", "mrconvert 5TT.nii.gz -coord 3 2 -axes 0,1,2 - -quiet | "
+                                   "mrtransform - -linear diff2struct_mrtrix.txt - -quiet | "
+                                   f"mrgrid - regrid -template {T1_BRAIN} -interp linear - -quiet | "
+                                   "mrthreshold - -abs 0.5 qc_tmp/wmseg_t1.nii.gz -force -quiet"),
     ]
     # FA solo existe si el pipeline se corrio con -dti; si no, se usa el b0 corregido
     if not os.path.exists(os.path.join(wd, "dti_FA.nii.gz")):
@@ -321,8 +339,135 @@ def cobertura_fov(mask_mni_path):
     return res
 
 
-def estado_cobertura(pct):
-    return "completo" if pct >= REF["cob_completo"] else ("parcial" if pct >= REF["cob_parcial"] else "incompleto")
+def costo_bbr(wd):
+    """
+    Costo BBR (boundary-based registration, el criterio de epi_reg) del registro DWI -> T1w actual: mide si
+    el contraste del b0 cambia donde el T1w dice que esta el borde sustancia blanca / gris. Menor es mejor.
+    """
+    mat = os.path.join(wd, "diff2struct_fsl.mat")
+    if not os.path.exists(mat):
+        return np.nan
+    sch = os.path.join(os.environ.get("FSLDIR", ""), "etc", "flirtsch", "measurecost1.sch")
+    r = subprocess.run(f"flirt -in qc_tmp/bzero.nii.gz -ref {T1_BRAIN} -init diff2struct_fsl.mat -schedule '{sch}' "
+                       "-cost bbr -wmseg qc_tmp/wmseg_t1.nii.gz", shell=True, cwd=wd, capture_output=True, text=True)
+    try:
+        return float(r.stdout.split()[0])
+    except (IndexError, ValueError):
+        return np.nan
+
+
+def registro_dwi_t1(wd):
+    p = os.path.join(wd, "metodos.json")
+    m = json.load(open(p)) if os.path.exists(p) else {}
+    if m.get("registro_dwi_t1"):
+        return m["registro_dwi_t1"]
+    return "epi_reg (BBR)" if os.path.exists(os.path.join(wd, "T1w_acpc_dc_restore.nii.gz")) else "flirt 6 dof"
+
+
+def densidad_fibras(P, largos):
+    """
+    Fraccion de las fibras (puntos P concatenados, largos = puntos por fibra) que pasa por cada voxel de la
+    grilla MNI de 2 mm. Los segmentos se densifican a pasos <= 1 mm y cada fibra cuenta una vez por voxel.
+    """
+    o, paso, forma = MALLA_MNI
+    D = np.zeros(int(np.prod(forma)), np.float32)
+    if len(largos) == 0:
+        return D.reshape(forma)
+    P = np.asarray(P, np.float32)
+    fid = np.repeat(np.arange(len(largos)), largos)
+    seg = fid[1:] == fid[:-1]
+    a, d = P[:-1][seg], np.diff(P, axis=0)[seg]
+    k = int(np.clip(np.ceil(np.linalg.norm(d, axis=1).max() / (paso / 2)), 1, 20)) if len(a) else 1
+    pts = np.concatenate([a + t * d for t in np.arange(k) / k] + [P])
+    ids = np.concatenate([np.tile(fid[:-1][seg], k), fid])
+    v = np.floor((pts - o) / paso).astype(np.int64)
+    ok = np.all((v >= 0) & (v < forma), axis=1)
+    clave = np.unique(ids[ok] * D.size + np.ravel_multi_index(tuple(v[ok].T), forma))
+    D[:] = np.bincount(clave % D.size, minlength=D.size)
+    return (D / len(largos)).reshape(forma)
+
+
+def dice_ponderado(a, b):
+    """Dice ponderado por densidad (Cousineau et al. 2017): 1 = misma distribucion espacial de fibras."""
+    a, b = a / (a.sum() + 1e-12), b / (b.sum() + 1e-12)
+    o = (a > 0) & (b > 0)
+    return float((a[o].sum() + b[o].sum()) / 2)
+
+
+def leer_bundles_mni(path, T_inv):
+    """Fibras de un .bundles de la segmentacion, en mm MNI (deshace tck2bundles.npy). Devuelve (P, largos)."""
+    d = np.fromfile(path + "data", dtype=np.int32)
+    if d.size % 64 == 0 and np.all(d[::64] == 21):      # caso normal: todas las fibras con 21 puntos
+        P, largos = d.view(np.float32).reshape(-1, 64)[:, 1:].reshape(-1, 3), np.full(d.size // 64, 21)
+    else:
+        P, largos, i = [], [], 0
+        while i < d.size:
+            n = int(d[i]); P.append(d[i + 1:i + 1 + 3 * n].view(np.float32).reshape(-1, 3)); largos.append(n)
+            i += 1 + 3 * n
+        P = np.concatenate(P) if P else np.zeros((0, 3), np.float32)
+    return P @ T_inv[:3, :3].T + T_inv[:3, 3], np.asarray(largos)
+
+
+def calidad_fasciculos(wd, cob):
+    """
+    Tabla por fasciculo (pag. 6): fibras y volumen en espacio DWI, FA media, Dice ponderado entre la densidad
+    de fibras del sujeto y la del atlas en MNI, asimetria izquierda/derecha del volumen (DWM) y % de fibras
+    del atlas dentro del FOV. Devuelve {tipo: DataFrame} con una columna de alerta (0/1/2) por indicador.
+    """
+    T_inv = np.linalg.inv(np.load(os.path.join(RECURSOS, "tck2bundles.npy")))
+    res = {}
+    for tipo, (txt, carpeta, prefijo, sufijo) in ATLAS_TCK.items():
+        if not (os.path.isdir(os.path.join(wd, tipo, "results_folder_DWI")) and os.path.exists(os.path.join(RECURSOS, txt))):
+            continue
+        csv = os.path.join(wd, "metricas", f"bundle_metrics_{tipo}.csv")
+        fa = pd.read_csv(csv) if os.path.exists(csv) else pd.DataFrame(columns=["bundle", "metrics", "vol_mm3", "mean"])
+        fa = fa[fa["metrics"] == "FA"].set_index("bundle")
+        fov = {f[0]: f[1] for f in cob.get(tipo, [])}
+        filas = []
+        for l in open(os.path.join(RECURSOS, txt)):
+            if not l.strip():
+                continue
+            nombre = l.split()[0]
+            corto = nombre.removesuffix("_MNI")               # nombre en results_folder_DWI y en el CSV
+            tck = os.path.join(wd, tipo, "results_folder_DWI", corto + ".tck")
+            n = int(nb.streamlines.TckFile.load(tck, lazy_load=True).header.get("count", 0)) if os.path.exists(tck) else 0
+            sub = os.path.join(wd, tipo, "results_folder", f"subject_to_{nombre}.bundles")
+            atl = os.path.join(RECURSOS, carpeta, nombre + ".tck")
+            dice_w = np.nan
+            if n > 0 and os.path.exists(sub) and os.path.exists(atl):
+                sl = nb.streamlines.load(atl).streamlines
+                dice_w = dice_ponderado(densidad_fibras(*leer_bundles_mni(sub, T_inv)),
+                                        densidad_fibras(sl.get_data(), sl._lengths))
+            vista = nombre.removeprefix(prefijo).removesuffix(sufijo)
+            filas.append({"fasciculo": vista, "n": n,
+                          "vol": fa["vol_mm3"].get(corto, np.nan) / 1000 if n else np.nan,
+                          "fa": fa["mean"].get(corto, np.nan) if n else np.nan,
+                          "dice": dice_w if n else 0.0, "fov": fov.get(vista, np.nan)})
+        df = pd.DataFrame(filas).set_index("fasciculo")
+        if tipo == "DWM":
+            # asimetria |L - R| / media, sobre el volumen (o el numero de fibras si no hay metricas)
+            base = df["vol"] if df["vol"].notna().any() else df["n"].astype(float)
+            df["asim"] = np.nan
+            for f in df.index[df.index.str.endswith("_LEFT")]:
+                g = f.removesuffix("_LEFT") + "_RIGHT"
+                if g in df.index:
+                    l, r = base[f], base[g]
+                    a = abs(l - r) / ((l + r) / 2) if (l + r) > 0 else np.nan
+                    df.loc[[f, g], "asim"] = a
+        A = ALERTAS[tipo]
+        nivel = lambda v, amb, roj, menor: (np.nan if pd.isna(v) else
+                                            2 if (v < roj if menor else v > roj) else
+                                            1 if (v < amb if menor else v > amb) else 0)
+        df["al_n"] = [2 if v == 0 else nivel(v, *A["n"], True) for v in df["n"]]
+        df["al_dice"] = [nivel(v, *A["dice"], True) for v in df["dice"]]
+        df["al_fov"] = [nivel(v, REF["cob_completo"], REF["cob_parcial"], True) for v in df["fov"]]
+        cols = ["al_n", "al_dice", "al_fov"]
+        if "asim" in df:
+            df["al_asim"] = [nivel(v, *A["asim"], False) for v in df["asim"]]
+            cols.append("al_asim")
+        df["alerta"] = df[cols].max(axis=1).fillna(0).astype(int)
+        res[tipo] = df
+    return res
 
 
 def params_fsl_mat(path):
@@ -377,25 +522,30 @@ def pagina_resumen(pdf, wd, suj, M):
         if m.get("entradas", {}).get("t1w"):
             series.append(m["entradas"]["t1w"])
         metodo = SDC_TITULO[sdc]
+        detalle = []
         if m.get("PhaseEncodingDirection"):
-            metodo += f"  ·  PE {m['PhaseEncodingDirection']}, readout {m.get('TotalReadoutTime')} s ({m.get('fuente_fase')})"
+            detalle.append(f"PE {m['PhaseEncodingDirection']}, readout {m.get('TotalReadoutTime')} s ({m.get('fuente_fase')})")
         if m.get("shells"):
-            metodo += f"  ·  shells {m['shells']}, CSD {m.get('csd_tejidos')} tejidos"
+            detalle.append(f"shells {m['shells']}, CSD {m.get('csd_tejidos')} tejidos")
+        if detalle:
+            metodo += "\n   " + "  ·  ".join(detalle)
     except Exception as e:
         series, metodo, sdc = [f"(no disponible: {e})"], "n/d", None
     y = 0.86
     fig.text(0.03, y, "Series de entrada", fontsize=10, fontweight="bold"); y -= 0.03
     for s in series:
         fig.text(0.04, y, s, fontsize=8, family="monospace"); y -= 0.025
-    fig.text(0.04, y, "Corrección de distorsión: " + metodo, fontsize=8,
-             color="red" if sdc == "none" else "black"); y -= 0.025
+    fig.text(0.04, y, "Corrección de distorsión: " + metodo, fontsize=8, va="top" if "\n" in metodo else "baseline",
+             color="red" if sdc == "none" else "black"); y -= 0.025 * (1 + metodo.count("\n"))
 
     # Tabla de metricas
     y -= 0.02
     fig.text(0.03, y, "Métricas (referencias orientativas*)", fontsize=10, fontweight="bold"); y -= 0.035
     filas = [
         ("Dice máscara DWI vs cerebro T1w", M.get("dice"), f"≥ {REF['dice']}", semaforo(M.get("dice"), REF["dice"])),
-        ("Rotación DWI→T1w (epi_reg/flirt) [°]", M.get("rot"), f"≤ {REF['rot_epireg']}",
+        ("Costo BBR del registro DWI→T1w (pág. 3)", M.get("bbr"), f"≤ {REF['bbr']}",
+         semaforo(M.get("bbr"), REF["bbr"], False)),
+        ("Rotación DWI→T1w [°]", M.get("rot"), f"≤ {REF['rot_epireg']}",
          semaforo(M.get("rot"), REF["rot_epireg"], False)),
         ("Traslación DWI→T1w [mm]", M.get("tras"), "-", "-"),
         ("Correlación T1w deformado vs MNI", M.get("corr_mni"), f"≥ {REF['corr_mni']}",
@@ -411,14 +561,9 @@ def pagina_resumen(pdf, wd, suj, M):
     ]
     for tipo in ("DWM", "SWM"):
         if f"fasc_{tipo}" in M:
-            n_ok, n_tot = M[f"fasc_{tipo}"]
-            filas.append((f"Fascículos {tipo} segmentados", f"{n_ok}/{n_tot}", f"{n_tot}/{n_tot}",
-                          "OK" if n_ok == n_tot else "REVISAR"))
-    for tipo in ("DWM", "SWM"):
-        if f"cob_{tipo}" in M:
-            n_ok, n_tot = M[f"cob_{tipo}"]
-            filas.append((f"Fascículos {tipo} dentro del FOV (pág. 6)", f"{n_ok}/{n_tot}", f"{n_tot}/{n_tot}",
-                          "OK" if n_ok == n_tot else "REVISAR"))
+            verde, ambar, rojo, n_tot = M[f"fasc_{tipo}"]
+            filas.append((f"Fascículos {tipo} sin alertas (pág. 6)", f"{verde}/{n_tot}", "sin rojos",
+                          "OK" if rojo == 0 else "REVISAR"))
     for nombre, val, ref, st in filas:
         if isinstance(val, str):
             txt = val
@@ -514,19 +659,31 @@ def pagina_distorsion(pdf, I):
 
 
 def pagina_dwi_t1(pdf, I):
-    fig = pagina(pdf, "3. Registro T1w → espacio DWI",
-                 f"La transformación rígida se estima de DWI a T1w ({I['reg_dwi_t1']} sobre el b0 corregido) y se aplica invertida para "
-                 "llevar el T1w (y luego el 5TT) al espacio de difusión,\ndonde se hace la tractografía. "
-                 "Fila 1: FA (calculada dentro de la máscara DWI) con el borde de sustancia blanca del T1w (cian). "
-                 "Fila 2: T1w en espacio DWI con el contorno\nde la máscara DWI (amarillo) y FA = 0.3 (rojo). "
-                 "Si el registro es correcto, los haces con FA alta coinciden con la sustancia blanca del T1w.")
-    gs = fig.add_gridspec(2, 5, top=0.86, bottom=0.03, left=0.04, right=0.99, hspace=0.08, wspace=0.03)
+    fig = pagina(pdf, f"3. Registro T1w → espacio DWI — {I['reg_dwi_t1']}",
+                 "La transformación rígida se estima del b0 corregido al T1w y se aplica invertida para llevar el T1w "
+                 "(y su segmentación 5TT) al espacio de difusión, donde se hace la tractografía.\n"
+                 "Fondo: FA. Línea cian: borde de la sustancia blanca segmentada en el T1w.")
+    gs = fig.add_gridspec(2, 3, top=0.89, bottom=0.2, left=0.03, right=0.99, hspace=0.06, wspace=0.02)
     bg = I.get("FA", I["b0_post"])
-    vmin, vmax = (0, 0.8) if "FA" in I else ventana(bg, I["brain"])
-    fila_cortes(fig, gs, 0, bg, vmin, vmax, I["brain"], "FA" if "FA" in I else "b0", [(I["wm"], 0.5, "cyan")])
-    t1min, t1max = ventana(I["T1"], I["brain"])
-    cont2 = [(I["mask"], 0.5, "yellow")] + ([(I["FA"], 0.3, "red")] if "FA" in I else [])
-    fila_cortes(fig, gs, 1, I["T1"], t1min, t1max, I["brain"], "T1w en espacio DWI", cont2)
+    vmin, vmax = (0, 0.7) if "FA" in I else ventana(bg, I["brain"])
+    cortes = [("ax", .38), ("ax", .52), ("ax", .7), ("cor", .45), ("cor", .6), ("sag", .45)]
+    for k, (plano, f) in enumerate(cortes):
+        ax = fig.add_subplot(gs[k // 3, k % 3])
+        i = posiciones(I["brain"], plano, [f])[0]
+        panel(ax, bg, plano, i, vmin, vmax, [(I["wm"], 0.5, "#00e5ff")])
+        encuadre(ax, I["brain"], plano)
+    fig.text(0.04, 0.175, "Cómo leerla", fontsize=9, fontweight="bold")
+    fig.text(0.04, 0.155,
+             "• Registro correcto: la línea cian rodea los haces brillantes de la FA (cuerpo calloso, cápsula interna, "
+             "radiaciones) y el borde de los ventrículos, en todos los cortes.\n"
+             "• Registro incorrecto: la línea queda desplazada o rotada de forma sistemática respecto a la anatomía de "
+             "la FA (p. ej. el contorno de los ventrículos corrido hacia un lado).\n"
+             "• No se espera una coincidencia exacta: la FA tiene menor resolución (~2 mm) y la sustancia blanca con "
+             "fibras cruzadas o cercana a la corteza tiene FA baja aunque sea sustancia blanca en el T1w.\n"
+             "• Costo BBR (pág. 1): mide si el contraste del b0 cambia justo en el borde sustancia blanca/gris del T1w; "
+             "menor es mejor. En datos multishell con buen registro\n   es ~0.15–0.2, y un error de 2 mm lo sube a "
+             "~0.4. Depende también del contraste del b0, por lo que es más alto en adquisiciones clínicas.",
+             fontsize=8, va="top", linespacing=1.6)
     pdf.savefig(fig); plt.close(fig)
 
 
@@ -593,57 +750,78 @@ def pagina_mni(pdf, I):
     pdf.savefig(fig); plt.close(fig)
 
 
-def pagina_cobertura(pdf, I, cob):
-    fig = pagina(pdf, "6. Cobertura del FOV de la adquisición",
-                 "Fila superior: plantilla MNI con la máscara DWI del sujeto llevada a MNI; en rojo, el cerebro que "
-                 "quedó fuera de la adquisición (p. ej. vértex cortado). Abajo: % de fibras de cada fascículo\n"
-                 "del atlas que quedan enteras dentro de la máscara. No depende de la tractografía: un fascículo "
-                 f"incompleto aquí sale truncado por la adquisición (sus métricas no son comparables), no por una "
-                 f"falla\ndel procesamiento. Completo ≥ {REF['cob_completo']:.0f} %, parcial ≥ "
-                 f"{REF['cob_parcial']:.0f} %, incompleto < {REF['cob_parcial']:.0f} % (orientativo).")
-    gs = fig.add_gridspec(1, 5, top=0.86, bottom=0.6, left=0.04, right=0.99, wspace=0.03)
-    mni, mm = I["MNI"], I["MNI"] > 0
-    fuera = (mm & (I["mask_MNI"] <= 0)).astype(np.float32)
-    vmin, vmax = ventana(mni, mm)
-    fila_cortes(fig, gs, 0, mni, vmin, vmax, mm, "máscara DWI\nen MNI", [(I["mask_MNI"], 0.5, "yellow")],
-                overlay=(fuera, "autumn_r", 0.5, 1, 0.55),
-                cortes=(("ax", .35), ("ax", .65), ("ax", .88), ("cor", .5), ("sag", .5)))
-    color = {"completo": "tab:green", "parcial": "tab:orange", "incompleto": "tab:red"}
-    if "DWM" in cob:
-        filas = cob["DWM"]
-        ax = fig.add_axes([0.1, 0.04, 0.33, 0.5])
-        ax.barh(range(len(filas)), [f[1] for f in filas], color=[color[estado_cobertura(f[1])] for f in filas])
-        ax.set_yticks(range(len(filas)), [f[0] for f in filas], fontsize=5.5)
-        ax.invert_yaxis()
-        for ref in (REF["cob_completo"], REF["cob_parcial"]):
-            ax.axvline(ref, color="0.4", lw=0.6, ls="--")
-        ax.set_xlim(0, 100); ax.tick_params(axis="x", labelsize=7)
-        ax.set_xlabel("% de fibras del atlas dentro del FOV", fontsize=7)
-        ax.set_title("Fascículos DWM", fontsize=9)
-    if "SWM" in cob:
-        filas = sorted(cob["SWM"], key=lambda f: f[1])
-        ax = fig.add_axes([0.53, 0.33, 0.44, 0.21])
-        ax.bar(range(len(filas)), [f[1] for f in filas], width=1.0,
-               color=[color[estado_cobertura(f[1])] for f in filas])
-        for ref in (REF["cob_completo"], REF["cob_parcial"]):
-            ax.axhline(ref, color="0.4", lw=0.6, ls="--")
-        ax.set_ylim(0, 100); ax.set_xlim(-0.5, len(filas) - 0.5); ax.set_xticks([])
-        ax.tick_params(axis="y", labelsize=7)
-        ax.set_ylabel("% fibras dentro del FOV", fontsize=7)
-        n = {e: sum(estado_cobertura(f[1]) == e for f in filas) for e in color}
-        ax.set_title(f"Fascículos SWM ordenados ({n['completo']} completos, {n['parcial']} parciales, "
-                     f"{n['incompleto']} incompletos)", fontsize=9)
-        import textwrap
-        y = 0.27
-        for e in ("incompleto", "parcial"):
-            nombres = [f[0] for f in filas if estado_cobertura(f[1]) == e]
-            if nombres:
-                txt = textwrap.fill(f"{e.capitalize()}s ({len(nombres)}): " + ", ".join(nombres), 110)
-                lineas = txt.split("\n")
-                if len(lineas) > 6:
-                    txt = "\n".join(lineas[:6]) + " ..."
-                fig.text(0.53, y, txt, fontsize=6, color=color[e], va="top", family="monospace")
-                y -= 0.013 * min(len(lineas), 6) + 0.02
+COLOR_ALERTA = {0: "#d9f2d9", 1: "#ffe0a3", 2: "#f7b2b2"}
+
+
+def pagina_calidad(pdf, Q):
+    A = ALERTAS
+    fig = pagina(pdf, "6. Calidad de fascículos",
+                 "Indicadores por fascículo para detectar segmentaciones dudosas. Verde: sin alerta; ámbar: atención; "
+                 "rojo: revisar (umbrales orientativos, ver abajo). Fibras, volumen y FA en espacio DWI.")
+    if "DWM" in Q:
+        df = Q["DWM"]
+        cab = ["Fascículo DWM", "Fibras", "Vol. [cm³]", "FA", "Dice atlas", "Asim. L/R", "% en FOV"]
+        fmt = lambda v, f: "-" if pd.isna(v) else format(v, f)
+        texto = [[f, fmt(r.n, ".0f"), fmt(r.vol, ".1f"), fmt(r.fa, ".2f"), fmt(r.dice, ".2f"), fmt(r.asim, ".2f"),
+                  fmt(r.fov, ".0f")] for f, r in df.iterrows()]
+        al = ["alerta", "al_n", None, None, "al_dice", "al_asim", "al_fov"]
+        colores = [["white" if c is None or pd.isna(r[c]) else COLOR_ALERTA[int(r[c])] for c in al]
+                   for _, r in df.iterrows()]
+        ax = fig.add_axes([0.02, 0.02, 0.5, 0.88]); ax.axis("off")
+        t = ax.table(cellText=texto, colLabels=cab, cellColours=colores, loc="upper left", cellLoc="center",
+                     colWidths=[0.3, 0.11, 0.12, 0.09, 0.12, 0.12, 0.12])
+        t.auto_set_font_size(False); t.set_fontsize(6.5); t.scale(1, 0.92)
+        for (fila, col), c in t.get_celld().items():
+            c.set_linewidth(0.3)
+            if fila == 0:
+                c.set_text_props(fontweight="bold")
+            elif col == 0:
+                c.set_text_props(ha="left")
+    x = 0.55
+    y = 0.88
+    if "SWM" in Q:
+        df = Q["SWM"]
+        n = df["alerta"].value_counts()
+        fig.text(x, y, f"Fascículos SWM ({len(df)}): {n.get(0, 0)} sin alerta, {n.get(1, 0)} ámbar, {n.get(2, 0)} rojo",
+                 fontsize=9, fontweight="bold"); y -= 0.025
+        marc = df[df["alerta"] > 0].sort_values(["alerta", "dice"], ascending=[False, True])
+        if len(marc):
+            n_max = 22
+            fmt = lambda v, f: "-" if pd.isna(v) else format(v, f)
+            texto = [[f, fmt(r.n, ".0f"), fmt(r.dice, ".2f"), fmt(r.fov, ".0f")] for f, r in marc.head(n_max).iterrows()]
+            al = ["alerta", "al_n", "al_dice", "al_fov"]
+            colores = [[COLOR_ALERTA[int(r[c])] if not pd.isna(r[c]) else "white" for c in al]
+                       for _, r in marc.head(n_max).iterrows()]
+            alto = 0.0205 * (len(texto) + 1)
+            ax = fig.add_axes([x, y - alto, 0.3, alto]); ax.axis("off")
+            t = ax.table(cellText=texto, colLabels=["Fascículo SWM marcado", "Fibras", "Dice atlas", "% en FOV"],
+                         cellColours=colores, loc="upper left", cellLoc="center", colWidths=[0.4, 0.2, 0.2, 0.2],
+                         bbox=[0, 0, 1, 1])
+            t.auto_set_font_size(False); t.set_fontsize(6.5)
+            for (fila, col), c in t.get_celld().items():
+                c.set_linewidth(0.3)
+                if fila == 0:
+                    c.set_text_props(fontweight="bold")
+            y -= alto + 0.01
+            if len(marc) > n_max:
+                fig.text(x, y, f"... y {len(marc) - n_max} más", fontsize=7); y -= 0.02
+        y -= 0.015
+    D, S = A["DWM"], A["SWM"]
+    fig.text(x, y, "Cómo leerla", fontsize=9, fontweight="bold")
+    fig.text(x, y - 0.02,
+             f"• Fibras: ámbar < {D['n'][0]}, rojo < {D['n'][1]} (SWM: < {S['n'][0]} / < {S['n'][1]}); rojo si no se "
+             "segmentó.\n"
+             "• Dice atlas: concordancia entre la distribución espacial de las fibras del\n   sujeto y la del atlas, en MNI "
+             f"(Dice ponderado; 1 = idéntica). Ámbar < {D['dice'][0]},\n   rojo < {D['dice'][1]} (SWM: < {S['dice'][0]} / "
+             f"< {S['dice'][1]}). Fórnix, esplenio del cuerpo calloso y\n   CG3 derecho dan 0.2–0.45 aun sin problemas.\n"
+             "• Asim. L/R: diferencia de volumen entre los fascículos izquierdo y derecho,\n   relativa a su media "
+             f"(ámbar > {D['asim'][0]}, rojo > {D['asim'][1]}).\n"
+             "• % en FOV: fibras del atlas que quedan enteras dentro de la adquisición\n   (máscara DWI llevada a MNI). "
+             f"Ámbar < {REF['cob_completo']:.0f} %, rojo < {REF['cob_parcial']:.0f} %: el\n   fascículo sale truncado por el "
+             "campo de visión, no por el procesamiento,\n   y sus métricas no son comparables con las de otros sujetos.\n"
+             "• Primera columna: color de la peor alerta del fascículo.\n"
+             "• Umbrales calibrados con pocos sujetos: conviene ajustarlos con la cohorte.",
+             fontsize=7, va="top", linespacing=1.55)
     pdf.savefig(fig); plt.close(fig)
 
 
@@ -735,8 +913,7 @@ def generar_qc(wd, suj=None, force=False):
     for k in ("b0_pre", "b0_post", "mask", "tdi_diff", "T1_MNI", "tdi_MNI", "mask_MNI"):
         I[k], _ = cargar(q(f"{k}.nii.gz"))
     I["sdc"] = entradas(wd)[2]
-    # epi_reg (BBR) si se copio el T1w con craneo; si no, flirt 6 dof
-    I["reg_dwi_t1"] = "epi_reg, BBR" if os.path.exists(os.path.join(wd, "T1w_acpc_dc_restore.nii.gz")) else "flirt 6 dof"
+    I["reg_dwi_t1"] = registro_dwi_t1(wd)
     if I["sdc"] != "none" and os.path.exists(q("b0_inv.nii.gz")):
         I["b0_inv"], _ = cargar(q("b0_inv.nii.gz"))
     if os.path.exists(q("FA.nii.gz")):
@@ -752,6 +929,7 @@ def generar_qc(wd, suj=None, force=False):
     mat = os.path.join(wd, "diff2struct_fsl.mat")
     if os.path.exists(mat):
         M["tras"], M["rot"] = params_fsl_mat(mat)
+    M["bbr"] = costo_bbr(wd)
     mm = I["MNI_mask"] > 0
     M["corr_mni"] = float(np.corrcoef(I["T1_MNI"][mm], I["MNI"][mm])[0, 1])
     M["pts_diff"] = fraccion_puntos_dentro(os.path.join(wd, tck_dwi(wd)), q("mask.nii.gz"))
@@ -769,10 +947,11 @@ def generar_qc(wd, suj=None, force=False):
         carpeta = os.path.join(wd, tipo, "results_folder_DWI")
         if os.path.isdir(carpeta) and os.path.exists(os.path.join(RECURSOS, txt)):
             atlas[tipo] = lista_fasciculos(os.path.join(RECURSOS, txt), sufijo, carpeta)
-            M[f"fasc_{tipo}"] = (len(atlas[tipo][1]), len(atlas[tipo][0]))
-    cob = cobertura_fov(q("mask_MNI.nii.gz"))
-    for tipo, filas in cob.items():
-        M[f"cob_{tipo}"] = (sum(estado_cobertura(f[1]) == "completo" for f in filas), len(filas))
+    print("  QC: calidad de fascículos", flush=True)
+    Q = calidad_fasciculos(wd, cobertura_fov(q("mask_MNI.nii.gz")))
+    for tipo, df in Q.items():
+        n = df["alerta"].value_counts()
+        M[f"fasc_{tipo}"] = (n.get(0, 0), n.get(1, 0), n.get(2, 0), len(df))
 
     os.makedirs(os.path.join(wd, "QC"), exist_ok=True)
     copiar_eddy_quad(wd, suj)
@@ -783,7 +962,7 @@ def generar_qc(wd, suj=None, force=False):
         pagina_dwi_t1(pdf, I)
         pagina_5tt(pdf, I)
         pagina_mni(pdf, I)
-        pagina_cobertura(pdf, I, cob)
+        pagina_calidad(pdf, Q)
         pagina_tractografia(pdf, I)
         if "DWM" in atlas:
             pagina_fasciculos(pdf, I, os.path.join(wd, "DWM", "results_folder_DWI"),

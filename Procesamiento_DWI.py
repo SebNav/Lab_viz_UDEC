@@ -25,13 +25,14 @@ Cambios respecto a v1:
     - dwibiascorrect ants; mascara DWI con HD-BET si esta instalado (si no, dwi2mask) (-mask).
     - msmt_csd sobre los datos preprocesados (v1 usaba dwi.mif crudo) + mtnormalise: 3 tejidos con >= 2
       shells b > 0, 2 tejidos (WM + CSF) con una sola.
-    - Registro b0 -> T1w con epi_reg (BBR) si existe el T1w con craneo; si no, flirt 6 dof.
+    - Registro b0 -> T1w con epi_reg (BBR) si existe el T1w con craneo; si no, flirt 6 dof + BBR con la
+      sustancia blanca de FAST sobre el T1w sin craneo.
     - tckgen con semillas en la interfaz GM-WM (-seed_gmwmi; v1 sembraba en toda la mascara DWI). Se
       conserva la tractografia SIFT original; los fasciculos en espacio DWI y sus metricas salen de ella.
     - Metricas DTI opcionales (-dti) sobre la shell b mas baja.
     - Registro T1w -> MNI152 1 mm con ANTs SyN (v1 usaba flirt + fnirt por defecto a 3 mm).
     - Metricas por fasciculo (metricas/bundle_metrics_<DWM|SWM>.csv) con -dti y -segmentacion.
-    - PDF de QC por sujeto (qc_dwi.py), incluida la cobertura del FOV por fasciculo.
+    - PDF de QC por sujeto (qc_dwi.py), con la calidad de cada fasciculo (incluida la cobertura del FOV).
     - Los comandos se detienen ante errores y cada paso se omite si su salida ya existe, por lo que el
       pipeline se puede reanudar.
     - -cleanup: al terminar un sujeto borra los archivos intermedios (ver LIMPIEZA). Los borrados quedan
@@ -102,7 +103,7 @@ LIMPIEZA = [
     "tractography_prob_sift_3M_21p_MNI.bundlesdata",          # (se conserva el .tck)
     "wmfod.nii.gz", "gm.nii.gz", "csf.nii.gz",                # reemplazados por *_norm
     "tensor.nii.gz", "RF_voxels.nii.gz", "b0_mean_hdbet.nii.gz", "b0_hdbet_bet.nii.gz",
-    "diff2struct_epireg*",                                    # auxiliares de epi_reg
+    "diff2struct_epireg*", "diff2struct_init.mat", "diff2struct_fast*",  # auxiliares de epi_reg / BBR
     f"{ANTS_PREFIX}Warped.nii.gz", f"{ANTS_PREFIX}InverseWarped.nii.gz",  # T1w deformado (QC lo recalcula)
     "inv_identity_warp_no.nii.gz", "*_to_MNI152_*.log",       # restos del registro con fnirt
     "output.tck", "output_sift.tck", "tmp_dwicat_*.mif", "gmwmi_seed.nii.gz",
@@ -824,9 +825,20 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
             f"epi_reg --epi=bzero.nii.gz --t1={T1_HEAD} --t1brain={T1_BRAIN} --out=diff2struct_epireg",
             "cp diff2struct_epireg.mat diff2struct_fsl.mat",
         ], wd)
+        reg = "epi_reg (BBR)"
     else:
-        step("diff2struct_fsl.mat",
-             f"flirt -in bzero.nii.gz -ref {T1_BRAIN} -omat diff2struct_fsl.mat -dof 6", wd)
+        # Sin T1w con craneo no se puede usar epi_reg, pero BBR solo necesita la sustancia blanca: flirt 6 dof
+        # como inicio y BBR con la sustancia blanca segmentada por FAST en el T1w sin craneo (lo que hace epi_reg)
+        step("diff2struct_fsl.mat", [
+            f"flirt -in bzero.nii.gz -ref {T1_BRAIN} -omat diff2struct_init.mat -dof 6",
+            f"fast -t 1 -n 3 -o diff2struct_fast {T1_BRAIN}",
+            "fslmaths diff2struct_fast_pve_2 -thr 0.5 -bin diff2struct_fast_wmseg",
+            f"flirt -in bzero.nii.gz -ref {T1_BRAIN} -dof 6 -cost bbr -wmseg diff2struct_fast_wmseg "
+            "-init diff2struct_init.mat -schedule $FSLDIR/etc/flirtsch/bbr.sch -omat diff2struct_fsl.mat",
+        ], wd)
+        # sujetos registrados con una version anterior (flirt 6 dof sin BBR) no se rehacen
+        reg = "flirt 6 dof + BBR" if existe(wd, "diff2struct_init.mat") else "flirt 6 dof"
+    guardar_metodos(wd, registro_dwi_t1=reg)
     step("T1w_acpc_dc_restore_brain_diff_space.nii.gz", [
         f"transformconvert diff2struct_fsl.mat bzero.nii.gz {T1_BRAIN} flirt_import "
         "diff2struct_mrtrix.txt -force",

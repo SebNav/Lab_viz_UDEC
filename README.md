@@ -83,7 +83,7 @@ Los resultados de cada sujeto quedan en `Sujeto/proc_dwi_v2/`:
 
 | Archivo | Contenido |
 |---|---|
-| `QC/QC_<sujeto>.pdf` | Reporte de QC: corrección de distorsión, registros, cobertura del campo de visión por fascículo, tractografía y fascículos, con métricas marcadas OK / REVISAR |
+| `QC/QC_<sujeto>.pdf` | Reporte de QC: corrección de distorsión, registros, tractografía y calidad de cada fascículo (concordancia con el atlas, simetría, cobertura del campo de visión), con métricas marcadas OK / REVISAR |
 | `metricas/bundle_metrics_DWM.csv`, `metricas/bundle_metrics_SWM.csv` | FA, AD, RD y MD por fascículo: número de fibras, volumen, media, desviación, mediana e IQR |
 | `DWM/`, `SWM/` | Fascículos segmentados en espacio MNI (`results_folder/`) y nativo (`results_folder_DWI/`) |
 | `dwi_preproc_unbiased.nii.gz`, `dwi_mask.nii.gz`, `dti_*.nii.gz` | DWI preprocesada, máscara y mapas DTI |
