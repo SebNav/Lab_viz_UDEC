@@ -35,15 +35,20 @@ Funciona con dos tipos de adquisición, que solo difieren en la corrección de l
 | [HD-BET](https://github.com/MIC-DKFZ/HD-BET) (recomendado) | Máscara cerebral |
 | [Synb0-DisCo](https://github.com/MASILab/Synb0-DISCO) (datos clínicos) | b0 sintética; requiere Docker o Apptainer y una licencia de FreeSurfer |
 
-La instalación de HD-BET y Synb0-DisCo se explica en [INSTALACION.md](INSTALACION.md).
+## Instalación
 
-Los atlas, `main_index` y las plantillas MNI se toman del repositorio [Lab_viz_UDEC](https://github.com/SebNav/Lab_viz_UDEC), por lo que esta carpeta debe quedar junto a `Pipeline_ProcesamientoDiff_TractySegmentacion/`:
+El pipeline usa los atlas, `main_index` y las plantillas MNI de la carpeta `Algoritmos_y_Archivos/Pipeline_ProcesamientoDiff_TractySegmentacion/` del repositorio [Lab_viz_UDEC](https://github.com/SebNav/Lab_viz_UDEC).
+
+- **Si ya tienes `Algoritmos_y_Archivos`:** descarga `Procesamiento_DWI.py` y `qc_dwi.py` y guárdalos juntos en `Pipeline_ProcesamientoDiff_TractySegmentacion/` (donde está `Procesamiento_Mrtrix3.py`) o en otra carpeta dentro de `Algoritmos_y_Archivos/`.
+- **Si no lo tienes:**
 
 ```
 git clone https://github.com/SebNav/Lab_viz_UDEC.git
 cd Lab_viz_UDEC/Algoritmos_y_Archivos
 git clone https://github.com/SebNav/Pipeline_DWI.git
 ```
+
+La instalación de HD-BET y Synb0-DisCo se explica en [INSTALACION.md](INSTALACION.md).
 
 ## Datos de entrada
 
