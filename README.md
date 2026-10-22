@@ -17,8 +17,13 @@ Funciona con dos tipos de adquisición, que solo difieren en la corrección de l
 
 ## Cambios respecto a la versión anterior
 
-La distorsión por susceptibilidad, que la versión 1 no corregía, ahora se corrige con topup: en adquisiciones de investigación se usa la b0 adquirida con la fase invertida, y en adquisiciones clínicas, que no la tienen, una b0 sintética sin distorsión generada a partir del T1w con [Synb0-DisCo](https://github.com/MASILab/Synb0-DISCO). La máscara cerebral puede obtenerse con dos métodos: [HD-BET](https://github.com/MIC-DKFZ/HD-BET), más confiable y con mejor desempeño, que se usa si está instalado (**se recomienda encarecidamente instalarlo**), o `dwi2mask` de MRtrix en caso contrario. El registro al espacio MNI152 pasó de FSL (`flirt` + `fnirt` sobre una plantilla de 3 mm) a ANTs SyN sobre la plantilla de 1 mm, que es más robusto y se ajusta mejor a la anatomía del sujeto. Además, se agregaron un reporte de QC para identificar rápidamente problemas en cada sujeto, la extracción de las métricas DTI por fascículo y un proceso opcional de limpieza que deja solo los archivos necesarios. También se corrigieron errores de la versión 1 (la CSD se calculaba sobre la DWI sin preprocesar y los comandos fallidos se ignoraban), y ahora el pipeline se puede reanudar.
-
+- La distorsión por susceptibilidad, que la versión 1 no corregía, ahora se corrige con topup: en adquisiciones de investigación se usa la b0 adquirida con la fase invertida, y en adquisiciones clínicas (solamente 1 b-values y menos dirreciones), que no la tienen, una b0 sintética sin distorsión generada a partir del T1w con [Synb0-DisCo](https://github.com/MASILab/Synb0-DISCO).
+- La máscara cerebral puede obtenerse con dos métodos: [HD-BET](https://github.com/MIC-DKFZ/HD-BET), más confiable y con mejor desempeño, que se usa si está instalado (**se recomienda encarecidamente instalarlo**), o `dwi2mask` de MRtrix en caso contrario.
+- El registro al espacio MNI152 pasó de FSL (`flirt` + `fnirt`) a ANTs SyN sobre la plantilla de 1 mm, que es más robusto y se ajusta mejor a la anatomía del sujeto.
+- Se agregaron un reporte de QC para identificar rápidamente problemas en cada sujeto
+- Se añadio el proceso de extracción de las métricas DTI por fascículo 
+- Se añadio proceso opcional de limpieza que deja solo los archivos necesarios.
+  
 ## Requisitos
 
 | Software | Uso |
