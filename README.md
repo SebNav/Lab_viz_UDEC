@@ -52,10 +52,10 @@ La instalación de HD-BET y Synb0-DisCo se explica en [INSTALACION.md](INSTALACI
 
 ## Datos de entrada
 
-Una carpeta con un subdirectorio por sujeto, cada uno con el T1w procesado con el pipeline estructural del HCP (`T1w_acpc_dc_restore_brain.nii.gz` y, opcionalmente, `T1w_acpc_dc_restore.nii.gz`) y la DWI en uno de estos formatos:
+Una carpeta con un subdirectorio por sujeto, cada uno con el T1w procesada (`T1w_acpc_dc_restore_brain.nii.gz` y, opcionalmente, `T1w_acpc_dc_restore.nii.gz`) y la DWI en uno de estos formatos:
 
 - **Salida de `dcm2niix`** (`.nii.gz/.json/.bval/.bvec`, en cualquier subcarpeta): los runs con b > 0 se concatenan y la serie de solo b0 con la fase opuesta se usa como b0 inversa. La dirección de fase se lee de los `.json`.
-- **`diff.nii.gz/.bval/.bvec`** (formato de la versión 1): la dirección de fase se indica con `-pe_dir` o con un `acq.json` (`{"PhaseEncodingDirection": "j-"}`).
+- **`diff.nii.gz/.bval/.bvec`** (formato de la versión 1): la dirección de fase sedebe indicar con al usar el script `-pe_dir` o se debe guardan el `acq.json` original con la variable (`{"PhaseEncodingDirection": "j- (este valor cambia según la acquisicion puede ser -j,j,-i,i-k,k"}`).
 
 ## Uso
 
