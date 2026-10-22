@@ -39,7 +39,7 @@ Funciona con dos tipos de adquisición, que solo difieren en la corrección de l
 
 El pipeline usa los atlas, `main_index` y las plantillas MNI de la carpeta `Algoritmos_y_Archivos/Pipeline_ProcesamientoDiff_TractySegmentacion/` del repositorio [Lab_viz_UDEC](https://github.com/SebNav/Lab_viz_UDEC).
 
-- **Si ya tienes `Algoritmos_y_Archivos`:** descarga `Procesamiento_DWI.py` y `qc_dwi.py` y guárdalos juntos en `Pipeline_ProcesamientoDiff_TractySegmentacion/` (donde está `Procesamiento_Mrtrix3.py`) o en otra carpeta dentro de `Algoritmos_y_Archivos/`.
+- **Si ya tienes `Algoritmos_y_Archivos`:** descarga `Procesamiento_DWI.py` y `qc_dwi.py` y guárdalos juntos a los archivos de `Pipeline_ProcesamientoDiff_TractySegmentacion/` (donde está `Procesamiento_Mrtrix3.py`).
 - **Si no lo tienes:**
 
 ```
