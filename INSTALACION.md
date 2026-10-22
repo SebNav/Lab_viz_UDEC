@@ -4,7 +4,7 @@ Ambos son opcionales, pero mejoran el resultado: HD-BET da una máscara cerebral
 
 ## HD-BET (recomendado)
 
-[HD-BET](https://github.com/MIC-DKFZ/HD-BET) es una red neuronal para extraer el cerebro. Se instala con `pip` en el mismo entorno de Python del pipeline:
+[HD-BET](https://github.com/MIC-DKFZ/HD-BET) es algoritmo de red neuronal que extrae el cerebro. Se instala con `pip` en el mismo entorno de Python del pipeline:
 
 ```
 pip install hd-bet
@@ -15,7 +15,7 @@ Los pesos de la red se descargan solos la primera vez que se usa. Con una GPU NV
 
 ## Synb0-DisCo (datos clínicos)
 
-[Synb0-DisCo](https://github.com/MASILab/Synb0-DISCO) genera, a partir del T1w, una b0 sin distorsión que reemplaza a la b0 con fase invertida que no tienen las adquisiciones clínicas. Corre dentro de un contenedor y necesita tres cosas:
+[Synb0-DisCo](https://github.com/MASILab/Synb0-DISCO) genera, a partir del T1w, una b0 sin distorsión que reemplaza a la b0 con fase invertida que no tienen las adquisiciones clínicas. Corre dentro de un contenedor (docker) y necesita tres cosas:
 
 **1. Docker** ([instalación en Ubuntu](https://docs.docker.com/engine/install/ubuntu/)), con permiso para usarlo sin `sudo`:
 
@@ -38,11 +38,5 @@ export FS_LICENSE=/ruta/a/license.txt
 
 Synb0-DisCo no requiere GPU y tarda ~13 min por sujeto. Si falta alguno de los tres requisitos, los sujetos clínicos se procesan sin corrección de susceptibilidad (solo eddy), y `-check` y el reporte de QC lo indican.
 
-**En un cluster sin Docker**, se puede usar [Apptainer](https://apptainer.org/docs/user/latest/):
-
-```
-apptainer pull synb0.sif docker://leonyichencai/synb0-disco:v3.1
-python3 Procesamiento_DWI.py -folder Carpeta_clinicos -container apptainer -synb0_sif synb0.sif ...
-```
 
 Si se usa Synb0-DisCo, hay que citar: Schilling et al., *Magn Reson Imaging* 2019;64:62-70 y *PLoS One* 2020;15(7):e0236418.
