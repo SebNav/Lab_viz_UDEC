@@ -16,6 +16,7 @@ import argparse
 import glob
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -219,6 +220,21 @@ def metodo_mascara(pedido):
     if pedido == "hdbet" and not shutil.which("hd-bet"):
         raise SystemExit("Error: -mask hdbet pero hd-bet no esta instalado (pip install hd-bet).")
     return pedido
+
+
+def hdbet_gpu():
+    """True si el PyTorch de hd-bet puede usar la GPU (no puede, por ejemplo, con drivers de NVIDIA antiguos)."""
+    if not shutil.which("nvidia-smi"):
+        return False
+    with open(shutil.which("hd-bet")) as f:
+        primera = f.readline()
+    python = shlex.split(primera[2:]) if primera.startswith("#!") else [sys.executable]
+    try:
+        return subprocess.run(python + ["-c", "import torch; torch.zeros(1).cuda()"],
+                              capture_output=True, timeout=300,
+                              env=dict(os.environ, MKL_THREADING_LAYER="GNU")).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
 
 def opposite_pe(a, b):
@@ -622,10 +638,13 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
     if args.mask == "hdbet":
         # HD-BET solo acepta 3D: se aplica al b0 medio de los datos preprocesados. Se fuerza la capa
         # GNU de MKL porque numpy (importado aqui) deja MKL_THREADING_LAYER=INTEL, incompatible con torch.
-        device = "-device cuda" if shutil.which("nvidia-smi") else "-device cpu --disable_tta"
+        # Con GPU utilizable (hdbet_gpu) se usa cuda; si aun asi falla (p. ej. sin memoria) se repite con CPU.
+        hdbet = "MKL_THREADING_LAYER=GNU hd-bet -i b0_mean_hdbet.nii.gz -o b0_hdbet.nii.gz --save_bet_mask --no_bet_image"
+        cpu = f"{hdbet} -device cpu --disable_tta"
+        gpu = f"{hdbet} -device cuda || {{ echo 'AVISO: HD-BET fallo con GPU, se repite con CPU'; {cpu}; }}"
         step("dwi_mask.nii.gz", [
             f"dwiextract dwi_preproc_unbiased.nii.gz {G} - -bzero | mrmath - mean b0_mean_hdbet.nii.gz -axis 3 -force",
-            f"MKL_THREADING_LAYER=GNU hd-bet -i b0_mean_hdbet.nii.gz -o b0_hdbet.nii.gz --save_bet_mask --no_bet_image {device}",
+            gpu if args.hdbet_gpu else cpu,
             "mrconvert b0_hdbet_bet.nii.gz dwi_mask.nii.gz -datatype uint8 -force",
         ], wd)
     else:
@@ -893,7 +912,8 @@ def main():
                         help="Número de hilos (por defecto: todos).")
     args = parser.parse_args()
     args.mask = metodo_mascara(args.mask)
-    print(f"Mascara DWI: {args.mask}")
+    args.hdbet_gpu = args.mask == "hdbet" and hdbet_gpu()
+    print(f"Mascara DWI: {args.mask}" + (f" ({'GPU' if args.hdbet_gpu else 'CPU'})" if args.mask == "hdbet" else ""))
 
     if not os.path.isdir(args.folder):
         print(f"Error: La carpeta '{args.folder}' no existe.")

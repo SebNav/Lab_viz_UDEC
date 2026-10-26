@@ -11,7 +11,11 @@ pip install hd-bet
 hd-bet -h
 ```
 
-Los pesos de la red se descargan solos la primera vez que se usa. Con una GPU NVIDIA tarda ~40 s por sujeto; sin GPU funciona igual, pero más lento. El pipeline lo usa automáticamente si encuentra el comando `hd-bet`.
+Los pesos de la red se descargan solos la primera vez que se usa. Con una GPU NVIDIA tarda ~40 s por sujeto; sin GPU funciona igual, pero más lento. El pipeline lo usa automáticamente si encuentra el comando `hd-bet`. Antes de procesar comprueba si PyTorch puede usar la GPU (con drivers de NVIDIA desactualizados no puede) y, si no, corre HD-BET con CPU; `-check` muestra `Mascara DWI: hdbet (GPU)` o `(CPU)`. Si HD-BET falla igual con GPU, se repite con CPU y queda anotado en el log. Para probar la GPU a mano:
+
+```
+python3 -c "import torch; torch.zeros(1).cuda(); print('GPU OK:', torch.cuda.get_device_name(0))"
+```
 
 ## Synb0-DisCo (datos clínicos)
 
