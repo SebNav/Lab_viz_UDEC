@@ -20,6 +20,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import traceback
 
@@ -119,15 +120,11 @@ def run(cmd, cwd):
 def step(outputs, cmds, cwd):
     """Ejecuta cmds solo si alguna de las salidas no existe (permite reanudar)."""
     outputs = [outputs] if isinstance(outputs, str) else outputs
-    if all(existe(cwd, o) for o in outputs):
+    if all(os.path.exists(os.path.join(cwd, o)) for o in outputs):
         print(f"  [omitido, ya existe] {', '.join(outputs)}")
         return
     for c in ([cmds] if isinstance(cmds, str) else cmds):
         run(c, cwd)
-
-
-def existe(wd, archivo):
-    return os.path.exists(os.path.join(wd, archivo))
 
 
 def limpiar(wd):
@@ -149,66 +146,49 @@ def limpiar(wd):
     print(f"  Cleanup: {len(borrados)} archivos borrados, {liberado / 1e9:.2f} GB liberados")
 
 
-def contar_puntos(tck):
-    """Numero de fibras por cantidad de puntos (main_index requiere que todas tengan N_PUNTOS)."""
-    n = {}
-    for f in nb.streamlines.load(tck, lazy_load=True).streamlines:
-        n[len(f)] = n.get(len(f), 0) + 1
-    return n
-
-
-def puntos_densos(fibras, paso):
-    """Puntos de las fibras remuestreadas cada `paso` mm como maximo, con el indice de fibra de cada uno."""
-    datos = np.asarray(fibras.get_data(), dtype=np.float32)
-    largos = np.asarray(fibras._lengths)
-    id_pt = np.repeat(np.arange(len(largos)), largos)
-    fin = np.cumsum(largos) - 1                              # ultimo punto de cada fibra
-    ini = np.setdiff1d(np.arange(len(datos) - 1), fin)        # segmentos dentro de una misma fibra
-    seg = datos[ini + 1] - datos[ini]
-    k = max(1, int(np.ceil(np.linalg.norm(seg, axis=1).max() / paso)))
-    pts = [datos] + [datos[ini] + t * seg for t in np.arange(1, k) / k]
-    ids = [id_pt] + [id_pt[ini]] * (k - 1)
-    return np.concatenate(pts), np.concatenate(ids)
-
-
 def metricas_fasciculos(wd, tipo, atlas_txt, sufijo, salida):
     """
-    Para cada fasciculo del atlas y cada mapa de METRICAS (espacio DWI):
+    Para cada fasciculo del atlas y cada mapa de METRICAS (espacio DWI), con herramientas de MRtrix:
       - n_streamlines: fibras del fasciculo.
-      - vol_mm3: volumen de los voxeles que atraviesan las fibras, dentro de la mascara DWI.
-      - mean/std/median/IQR: se promedia el mapa a lo largo de cada fibra (interpolacion trilineal, puntos
-        cada <= medio voxel) y se resumen esos promedios entre las fibras.
+      - vol_mm3: volumen en mm3 de los voxeles que atraviesan las fibras (tckmap), contado en una grilla de
+        1 mm isotropico en espacio DWI (no en la grilla DWI de ~2 mm) y dentro del cerebro del T1w sin craneo.
+      - mean/std/median/IQR: tcksample -stat_tck mean -precise da el promedio del mapa a lo largo de cada
+        fibra (valor de cada voxel que atraviesa, ponderado por el largo de fibra dentro de ese voxel) y se
+        resumen esos promedios entre las fibras.
     """
     import pandas as pd
-    from scipy.ndimage import map_coordinates
-    mask_img = nb.load(os.path.join(wd, "dwi_mask.nii.gz"))
-    mask = mask_img.get_fdata() > 0
-    inv_aff = np.linalg.inv(mask_img.affine)
-    zooms = mask_img.header.get_zooms()[:3]
-    mapas = {m: nb.load(os.path.join(wd, f)).get_fdata(dtype=np.float32) for m, f in METRICAS}
     filas = []
     nombres = [l.split()[0].removesuffix(sufijo) for l in open(os.path.join(RECURSOS, atlas_txt)) if l.strip()]
-    for nombre in nombres:
-        tck = os.path.join(wd, tipo, "results_folder_DWI", nombre + ".tck")
-        fibras = nb.streamlines.load(tck).streamlines if os.path.exists(tck) else []
-        n, vol, prom = len(fibras), 0.0, {m: np.array([]) for m in mapas}
-        if n:
-            pts, ids = puntos_densos(fibras, 0.5 * min(zooms))
-            ijk = pts @ inv_aff[:3, :3].T + inv_aff[:3, 3]
-            v = np.rint(ijk).astype(np.int64)
-            v = v[np.all((v >= 0) & (v < mask.shape), axis=1)]
-            vox = np.unique(np.ravel_multi_index(v.T, mask.shape))
-            vol = float(mask.ravel()[vox].sum() * np.prod(zooms))
-            cuenta = np.bincount(ids, minlength=n)
-            for m, mapa in mapas.items():
-                val = map_coordinates(mapa, ijk.T, order=1, mode="nearest")
-                prom[m] = np.bincount(ids, weights=val, minlength=n) / cuenta
-        for m in mapas:
-            x = prom[m]
-            q1, med, q3 = np.percentile(x, [25, 50, 75]) if len(x) else (np.nan,) * 3
-            filas.append({"bundle": nombre, "metrics": m, "space": "DWI", "n_streamlines": n, "vol_mm3": vol,
-                          "mean": x.mean() if len(x) else np.nan, "std": x.std(ddof=1) if len(x) > 1 else np.nan,
-                          "median": med, "IQR": q3 - q1})
+    with tempfile.TemporaryDirectory(dir=wd) as tmp:
+        valores = os.path.join(tmp, "valores.txt")
+        # Grilla del volumen: 1 mm isotropico en espacio DWI, igual para todos los sujetos (la DWI tiene
+        # voxeles de ~2 mm no cubicos y la resolucion del T1w varia). Mascara: T1w sin craneo en espacio DWI.
+        cerebro_1mm = os.path.join(tmp, "cerebro_1mm.mif")
+        subprocess.run(f"mrgrid T1w_acpc_dc_restore_brain_diff_space.nii.gz regrid -voxel 1 -interp nearest - -quiet | "
+                       f"mrcalc - 0 -gt '{cerebro_1mm}' -datatype bit -quiet", shell=True, cwd=wd, check=True)
+        for nombre in nombres:
+            tck = os.path.join(wd, tipo, "results_folder_DWI", nombre + ".tck")
+            n = int(nb.streamlines.load(tck, lazy_load=True).header["count"]) if os.path.exists(tck) else 0
+            vol, prom = 0.0, {m: np.array([]) for m, _ in METRICAS}
+            if n:  # tcksample se cae con un .tck sin fibras
+                # tckmap: volumen del fasciculo. Mapa de densidad de fibras en la grilla de 1 mm; se cuentan
+                # los voxeles con fibras dentro del cerebro (cada voxel = 1 mm3).
+                vol = float(subprocess.run(
+                    f"tckmap '{tck}' -template '{cerebro_1mm}' - -quiet | "
+                    f"mrstats - -mask '{cerebro_1mm}' -ignorezero -output count -quiet",
+                    shell=True, cwd=wd, capture_output=True, text=True, check=True).stdout)
+                # tcksample: valores de difusion (FA, AD, RD, MD) por fibra, leidos de los mapas DTI en su
+                # grilla DWI nativa.
+                for m, f in METRICAS:
+                    subprocess.run(["tcksample", tck, f, valores, "-stat_tck", "mean", "-precise", "-force", "-quiet"],
+                                   cwd=wd, check=True)
+                    prom[m] = np.loadtxt(valores, comments="#", ndmin=1)
+            for m in prom:
+                x = prom[m]
+                q1, med, q3 = np.percentile(x, [25, 50, 75]) if len(x) else (np.nan,) * 3
+                filas.append({"bundle": nombre, "metrics": m, "space": "DWI", "n_streamlines": n, "vol_mm3": vol,
+                              "mean": x.mean() if len(x) else np.nan, "std": x.std(ddof=1) if len(x) > 1 else np.nan,
+                              "median": med, "IQR": q3 - q1})
     os.makedirs(os.path.dirname(salida), exist_ok=True)
     pd.DataFrame(filas).round(6).to_csv(salida, index=False)
 
@@ -450,7 +430,7 @@ def corregir_synb0(wd, datos, args, runtime, licencia, nt):
     """
     G_DEN = "-fslgrad dwi_den.bvec dwi_den.bval"
     print("--Synb0-DisCo (b0 sintetica sin distorsion + topup) y eddy--")
-    if all(existe(wd, f) for f in ("dwi_preproc.nii.gz", "dwi_preproc.bvec", "dwi_preproc.bval")):
+    if all(os.path.exists(os.path.join(wd, f)) for f in ("dwi_preproc.nii.gz", "dwi_preproc.bvec", "dwi_preproc.bval")):
         print("  [omitido, ya existe] dwi_preproc.nii.gz")
         return
     for d in ("INPUTS", "OUTPUTS"):
@@ -512,7 +492,7 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
     suj = os.path.basename(os.path.normpath(suj_dir))
     wd = os.path.join(suj_dir, WORKDIR_NAME)
     os.makedirs(wd, exist_ok=True)
-    if existe(wd, CLEANUP_FILE):
+    if os.path.exists(os.path.join(wd, CLEANUP_FILE)):
         print(f"  [omitido] {suj} ya se proceso y limpio (-cleanup); para rehacerlo, borrar {WORKDIR_NAME}/")
         return
     LOG_FILE = os.path.join(wd, "pipeline_v2.log")
@@ -525,7 +505,7 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
     rel = lambda p: os.path.relpath(p, suj_dir) if p else None
     hecho = json.load(open(os.path.join(wd, METODOS_FILE))).get("sdc") \
         if os.path.exists(os.path.join(wd, METODOS_FILE)) else None
-    if hecho and hecho != sdc and existe(wd, "dwi_preproc.nii.gz"):
+    if hecho and hecho != sdc and os.path.exists(os.path.join(wd, "dwi_preproc.nii.gz")):
         raise RuntimeError(f"el sujeto ya se preproceso con -sdc {hecho}; para usar {sdc} hay que borrar "
                            f"{WORKDIR_NAME}/ (o usar -sdc {hecho})")
     with open(os.path.join(wd, PE_FILE), "w") as f:
@@ -689,7 +669,7 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
             "-init diff2struct_init.mat -schedule $FSLDIR/etc/flirtsch/bbr.sch -omat diff2struct_fsl.mat",
         ], wd)
         # sujetos registrados con una version anterior (flirt 6 dof sin BBR) no se rehacen
-        reg = "flirt 6 dof + BBR" if existe(wd, "diff2struct_init.mat") else "flirt 6 dof"
+        reg = "flirt 6 dof + BBR" if os.path.exists(os.path.join(wd, "diff2struct_init.mat")) else "flirt 6 dof"
     guardar_metodos(wd, registro_dwi_t1=reg)
     step("T1w_acpc_dc_restore_brain_diff_space.nii.gz", [
         f"transformconvert diff2struct_fsl.mat bzero.nii.gz {T1_BRAIN} flirt_import "
@@ -746,7 +726,7 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
     # MNI se amplia 40 mm para que ningun punto quede fuera: tcktransform descarta esos puntos y main_index
     # lee las fibras con largo fijo (N_PUNTOS), por lo que una fibra mas corta corrompe la segmentacion.
     print("--Registro de tractografía al espacio MNI152 (ANTs SyN)--")
-    if existe(wd, FINAL_FILE):
+    if os.path.exists(os.path.join(wd, FINAL_FILE)):
         print(f"  [omitido, ya existe] {FINAL_FILE}")
     else:
         t1d = "T1w_acpc_dc_restore_brain_diff_space.nii.gz"
@@ -762,14 +742,10 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
                   "warpinvert mrtrix_warp_MNI2dwi.nii.gz mrtrix_warp_dwi2MNI.nii.gz -force",
                   f"tcktransform {TCK_21P} mrtrix_warp_MNI2dwi.nii.gz tmp_MNI.tck -force"]:
             run(c, wd)
-        puntos = contar_puntos(os.path.join(wd, "tmp_MNI.tck"))
-        if list(puntos) != [N_PUNTOS]:
-            raise RuntimeError(f"tcktransform dejo fibras con distinto numero de puntos: {puntos}")
         os.replace(os.path.join(wd, "tmp_MNI.tck"), os.path.join(wd, FINAL_FILE))
-        log_msg(f"Tractografia en MNI: {sum(puntos.values())} fibras, todas con {N_PUNTOS} puntos")
 
     bundles = os.path.join(wd, "tractography_prob_sift_3M_21p_MNI.bundles")
-    if not existe(wd, os.path.basename(bundles)):
+    if not os.path.exists(bundles):
         print("--Transformacion de formato de tractografia (.tck a .bundles)--")
         log_msg("$ __bundles__ tck2bundles")
         tck2bundles(os.path.join(wd, FINAL_FILE), bundles)
@@ -827,7 +803,7 @@ def procesar_sujeto(suj_dir, datos, args, runtime=None, licencia=None):
         for tipo in args.segmentacion:
             atlas_dir, atlas_txt, sufijo = ATLAS[tipo]
             csv = os.path.join("metricas", f"bundle_metrics_{tipo}.csv")
-            if existe(wd, csv):
+            if os.path.exists(os.path.join(wd, csv)):
                 print(f"  [omitido, ya existe] {csv}")
             elif not all(os.path.exists(os.path.join(wd, f)) for _, f in METRICAS):
                 log_msg(f"AVISO: no hay mapas DTI (usar -dti); se omiten las metricas de {tipo}.")

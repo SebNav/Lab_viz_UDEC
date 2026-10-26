@@ -796,6 +796,8 @@ def pagina_calidad(pdf, Q):
     fig.text(x, y - 0.02,
              f"• Fibras: ámbar < {D['n'][0]}, rojo < {D['n'][1]} (SWM: < {S['n'][0]} / < {S['n'][1]}); rojo si no se "
              "segmentó.\n"
+             "• Vol.: vóxeles que atraviesan las fibras, en una grilla de 1 mm isotrópico\n   (no la grilla DWI) "
+             "y dentro del cerebro del T1w.\n"
              "• Dice atlas: concordancia entre la distribución espacial de las fibras del\n   sujeto y la del atlas, en MNI "
              f"(Dice ponderado; 1 = idéntica). Ámbar < {D['dice'][0]},\n   rojo < {D['dice'][1]} (SWM: < {S['dice'][0]} / "
              f"< {S['dice'][1]}). Fórnix, esplenio del cuerpo calloso y\n   CG3 derecho dan 0.2–0.45 aun sin problemas.\n"
